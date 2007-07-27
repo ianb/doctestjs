@@ -1,0 +1,59 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-15">
+<title>JS Doctest Demo</title>
+<script src="jsdoctest.js" type="text/javascript"></script>
+</head>
+
+<body>
+<h1>JS Doctest Demo</h1>
+
+This is a demo of JS Doctest.  Doctests are &lt;pre&gt; elements with
+the class <code>doctest</code>, like:
+
+<pre>
+&lt;pre class="doctest"&gt;
+  $ print(
+  >   'hi');
+  hi
+&lt;/pre&gt;
+</pre>
+
+Note that <code>$</code> is used for a normal line, and <code>></code>
+is used for a continuation line.
+
+<table width="100%">
+<tr><th>Examples</th>
+<th>Output</th></tr>
+  
+<tr><td valign="top">
+<pre class="doctest">
+$ writeln('hi')
+hi
+$ 1+10
+11
+$ function <b>foo</b>() {
+>   for (var i=0; i<3; i++) {
+>     writeln(i);
+>   }
+> }
+$ foo()
+0
+1
+2
+$ 'anything ' + 'else?'
+"anything else?"
+</pre>
+  
+<button onclick="doctest()">test this</button>
+
+</td><td valign="top" style="border-left: 1px solid #999">
+<pre id="doctestOutput"></pre>
+</td></tr>
+</table>
+
+<hr noshade>
+
+By <a href="http://blog.ianbicking.org">Ian Bicking</a>
+</body> </html>
