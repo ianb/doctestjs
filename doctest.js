@@ -23,7 +23,11 @@ function doctest(verbosity/*default=0*/, elementId/*optional*/,
   var output = document.getElementById(outputId || 'doctestOutput');
   var reporter = new doctest.Reporter(output, verbosity || 0);
   if (elementId) {
-      doctest.runDoctest(document.getElementById(elementId), reporter);
+      var el = document.getElementById(elementId);
+      if (! el) {
+          throw('No such element '+elementId);
+      }
+      doctest.runDoctest(el, reporter);
   } else {
       var els = doctest.getElementsByTagAndClassName('pre', 'doctest');
       for (var i=0; i<els.length; i++) {
@@ -306,6 +310,9 @@ function assert(expr, statement) {
 doctest.assert = assert;
 
 doctest.getText = function (el) {
+  if (! el) {
+    throw('You must pass in an element');
+  }
   var text = '';
   for (var i=0; i<el.childNodes.length; i++) {
     var sub = el.childNodes[i];
