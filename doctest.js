@@ -447,6 +447,15 @@ doctest.extend = function (obj, extendWith) {
     return obj;
 };
 
+doctest.extendDefault = function (obj, extendWith) {
+    for (i in extendWith) {
+        if (typeof obj[i] == 'undefined') {
+            obj[i] = extendWith[i];
+        }
+    }
+    return obj;
+};
+
 if (typeof repr == 'undefined') {
     repr = doctest.repr;
 }

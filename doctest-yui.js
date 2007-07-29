@@ -13,6 +13,10 @@ doctest.mockYUIAsyncRequest = function (method, uri, callback, body/*optional*/)
     if (body) {
         writeln('body: '+body);
     }
+    doctest.extendDefault(callback, {
+                              success: function () {},
+                              failure: function () {},
+                              argument: []});
     if (doctest.mockYUIFailure) {
         var res = {
             tid: null, // FIXME: set
