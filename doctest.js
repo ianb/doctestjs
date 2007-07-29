@@ -23,7 +23,7 @@ function doctest(verbosity/*default=0*/, elementId/*optional*/,
   var output = document.getElementById(outputId || 'doctestOutput');
   var reporter = new doctest.Reporter(output, verbosity || 0);
   if (elementId) {
-      doctest.runDoctest($(elementId), reporter);
+      doctest.runDoctest(document.getElementById(elementId), reporter);
   } else {
       var els = doctest.getElementsByTagAndClassName('pre', 'doctest');
       for (var i=0; i<els.length; i++) {
@@ -167,7 +167,7 @@ doctest.Reporter.prototype.formatOutput = function (text) {
   var lines = text.split(/\n/);
   var output = ''
   for (var i=0; i<lines.length; i++) {
-    output += '    '+escapeHTML(lines[i])+'\n';
+    output += '    '+doctest.escapeHTML(lines[i])+'\n';
   }
   return output;
 }
@@ -185,7 +185,8 @@ doctest.JSRunner.prototype.run = function (example) {
   try {
     var result = window.eval(example.example);
   } catch (e) {
-    result = 'Error: ' + e;
+    writeln('Error: ' + e);
+    result = null;
     logDebug('Traceback for error '+e+':');
     if (e.stack) {
       var stack = e.stack.split('\n');
@@ -318,6 +319,14 @@ doctest.getText = function (el) {
   return text;
 }
 
+doctest.reload = function (button/*optional*/) {
+    if (button) {
+        button.innerHTML = 'reloading...';
+        button.disabled = true;
+    }
+    location.reload();
+};
+
 /* Taken from MochiKit */
 doctest.repr = function (o) {
     if (typeof o == 'undefined') {
@@ -417,6 +426,12 @@ doctest.strip = function (str) {
     return str.replace(/\s+$/, "").replace(/^\s+/, "");
 };
 
+doctest.escapeHTML = function (s) {
+    return s.replace(/&/g, '&amp;')
+    .replace(/\"/g, "&quot;")
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+};
 
 if (typeof repr == 'undefined') {
     repr = doctest.repr;
