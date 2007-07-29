@@ -1,0 +1,235 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>Doctest/JS: unit testing for Javascript made simple</title>
+<script type="text/javascript" src="../doctest.js"></script>
+<style type="text/css">
+body {
+  font-family: sans-serif;
+}
+li {
+  margin-bottom: 0.5em;
+}
+code {
+  color: #006;
+}
+
+h2, h3, h4, h5, h6 {
+  border-bottom: 2px solid #000;
+}
+pre {
+  border-left: 2px solid #bb3;
+  padding-left: 1em;
+}
+
+i, em {
+  font-family: serif;
+}
+</style>
+<link rel="stylesheet" type="text/css" href="../doctest.css">
+
+</head>
+
+<body>
+<h1>Doctest/JS: unit testing for Javascript made simple</h1>
+
+<p>
+Author: Ian Bicking
+&lt;<a href="mailto:ianb@colorstudy.com">ianb@colorstudy.com</a>&gt;
+<p>
+
+<h2>Introduction</h2>
+
+<p> Doctest/JS is a port of a widely used testing module <a
+href="http://python.org/doc/current/lib/module-doctest.html"><code>doctest</code></a>
+from the Python world.  The original doctest is by Tim Peters.
+</p>
+
+<p> The idea behind doctest is to demonstrate code usage in such a way
+that the demonstrations themselves can be tested.  But it was soon
+found that the technique used was more compact and readable than the
+xUnit style of testing that had become the defacto standard for
+testing.  (In my opinion, an unfortunate defactor standard.)
+</p>
+
+<p> The basic idea for a doctest is very simple: run an expression and
+check that its output is what you expected.  For example:
+
+<pre class="doctest" id="dt-factorial">
+$ function factorial(n) {
+>     if (n == 0) {
+>         return 1;
+>     } else {
+>         return n * factorial(n-1);
+>     }
+> }
+...
+$ factorial(3)
+6
+</pre>
+<button onclick="doctest(0, 'dt-factorial',
+'dt-factorial-out')">test</button>
+<button onclick="doctest.reload(this)">reload</button>
+<pre id="dt-factorial-out" class="output">Output:
+</pre>
+
+Here we define a function and test it in-place.  Typically of course
+you'd define the functions in your normal <code>.js</code> files
+(which you'd include as normal with <code>&lt;script&gt;</code>), and
+then simply use them in the examples.
+</p>
+
+<p> The format is fairly simple:
+
+<ul>
+  <li>Put your examples inside <code>&lt;pre
+  class="doctest"&gt;</code>.</li>
+
+  <li>Start each new expression with <code>$</code>.</li>
+
+  <li>If your expression takes more than one line, use
+  <code>></code> at the beginning of each new line.  Note that you can
+  put <code>></code> directly in the HTML, you don't have to quote it
+  as <code>&amp;gt;</code> (you only have to quote
+  <code>&lt;</code> in HTML).</li>
+
+  <li>After your expression, put the expected result of the
+  expression.</li>
+
+  <li>Use <code>...</code> to match all or part of the text.  For
+  instance, when you define a function you don't care about the value
+  of the expression (which is the function object itself). </li>
+
+  <li>Include on the page a <code>&lt;pre
+  id="doctestOutput"&gt;</code> where the output will go. </li>
+
+  <li>Include on the page a button like <code>&lt;button
+  onclick="doctest()"&gt;test&lt;/button&gt;</code></li>
+  
+</ul>
+</p>
+
+<h2>Output and repr</h2>
+
+<p> Doctest tries to act like a <a
+href="http://en.wikipedia.org/wiki/REPL" title="Read Eval Print
+Loop">REPL</a>: read an expression or statement, evaluate it, print
+the result.  The basic loop is:
+
+<ol>
+  <li>Parse all the examples. </li>
+  <li>Evaluate an expression. </li>
+  <li>If the result is <code>null</code>, do nothing and show
+  nothing.</li>
+  <li>If the expression throws an exception, do <code>writeln('Error: '+exception)</code></li>
+  <li>Otherwise <code>writeln(repr(result))</code>.</li>
+  <li>Compare everything printed to what the example shows</li>
+  <li>Repeat to bottom (regardless of errors).</li>
+</ol>
+</p>
+
+<p> Specifically, <code>writeln(str, ...)</code> writes strings.  You
+can use this in your own code if you want, or use something like
+<code>writeln(someFunction())</code> to avoid <code>repr</code>. </p>
+
+<p> <b><code>repr(obj)</code></b> gets the <em>programmer's
+representation</em> of an object.  The representation of a string is
+the Javascript literal for that string.  The representation of an
+Array <code>[repr(item0), repr(item1), ...]</code>.  (The code for
+<code>repr</code> is taken from <a
+href="http://mochikit.com">MochiKit</a>.)  You can customize what
+<code>repr</code> does to your own objects by implementing a method
+<code>__repr__</code> or <code>repr</code>, for example:
+
+<pre>
+MyClass.prototype.__repr__ = function () {
+    return '[MyClass name='+repr(this.name)+']';
+};
+</pre>
+
+<h2>Exceptions and Logging</h2>
+
+<p> It's encouraged that you test exception cases in your code.  You
+do this like:
+
+<pre class="doctest" id="dt-exception">
+$ function countTag(parent, tag) {
+>     return parent.getElementsByTagName(tag).length;
+> }
+...
+$ countTag(document.getElementById('dt-exception'), 'pre');
+0
+$ countTag({}, 'pre');
+Error: TypeError: parent.getElementsByTagName is not a function
+</pre>
+<button onclick="doctest(0, 'dt-exception',
+'dt-exception-out')">test</button>
+<button onclick="doctest.reload(this)">reload</button>
+<pre id="dt-exception-out" class="output">Output:
+</pre>
+
+<p> Unfortunately this hides the traceback.  Doctest will try to print
+the traceback to the logs; it's not as good a traceback, but it might
+be helpful anyway.  If you install <a
+href="https://addons.mozilla.org/en-US/firefox/addon/1843">Firebug</a>
+the traceback will be in the console.
+</p>
+
+<h2>Test Page Structure</h2>
+
+<p> As mentioned before, pages must contain certain structure.  You
+can have all your tests run together, or you can run pieces
+individually.  You must of course include <code>doctest.js</code> in
+your file, and then call <code>doctest()</code>.  There are optional
+arguments: <code>doctest(verbosity, elementId, outputId)</code>.
+<code>verbosity</code> defaults to 0.  <code>elementId</code> is the
+id of the <code>&lt;pre&gt;</code> element you want to test.  If you
+don't provide it then all pre elements with
+<code>class="doctest"</code> are selected.  Lastly the output is
+placed in a pre with the id <code>outputId</code>, or
+<code>id="doctestOutput</code> if none is given. </p>
+
+<p>Typically you run this code with <code>&lt;button
+onclick="doctest(...)"&gt;test&lt;/button&gt;</code>.  It can be
+helpful to include a reload button next to that, since usually when
+you re-test you want to reload the page first.  You can use
+<code>&lt;button
+onclick="doctest.reload(this)"&gt;reload&lt;/button&gt;</code> for
+this.  You can include as many buttons as you want on the page; for
+instance, each individual pre test block can have a button to test
+just that block (as do the examples in this document), plus one button
+to test everything at once.
+</p>
+
+<p>The file <a href="template.html">template.html</a> can be copied to
+setup new tests. </p>
+
+<h2>To Do</h2>
+
+<p>
+<ol>
+  <li>Detail should be displayed (but not matched for) when there is
+  an exception</li>
+
+  <li>A difficult-to-implement but important feature would be some way
+  of "pausing" the test so that asyncronous actions can occur.  It
+  might look like <code>pause(func)</code>, where a timer would call
+  func over and over until it returned true, then restart the tests at
+  that time. </li>
+
+  <li>Automatic creation of an output area for the report, if one
+  doesn't exist already.</li>
+
+  <li>Easier setup of per-test buttons, etc.  Maybe automatic
+  setup.</li>
+
+  <li>Some function to run on load that will look at the query string
+  to automatically run some or all tests on the page.  And a function
+  that will see if the tests have already been run, and if so then
+  reload the page with that auto-tester, basically combining "reload"
+and "test"
+  in one button. </li>
+</ol>
+</p>
+
+</body> </html>

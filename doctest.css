@@ -1,0 +1,9 @@
+pre.doctest {
+  border-left: 3px solid #99f;
+  padding-left: 1em;
+}
+
+pre.output {
+  border-left: 3px solid #9f9;
+  padding-left: 1em;
+}
