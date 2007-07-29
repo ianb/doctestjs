@@ -433,6 +433,13 @@ doctest.escapeHTML = function (s) {
     .replace(/>/g, '&gt;');
 };
 
+doctest.extend = function (obj, extendWith) {
+    for (i in extendWith) {
+        obj[i] = extendWith[i];
+    }
+    return obj;
+};
+
 if (typeof repr == 'undefined') {
     repr = doctest.repr;
 }
@@ -455,3 +462,4 @@ if (typeof logDebug == 'undefined') {
 if (typeof logInfo == 'undefined') {
     logInfo = log;
 }
+

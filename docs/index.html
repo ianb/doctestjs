@@ -260,6 +260,12 @@ MyModule.sendRequest = function (uri, data, callback) {
 This can call code in a different order than in a real situation, but
 it is usually a good simulation. </p>
 
+<p> For the <a href="http://developer.yahoo.com/yui/">YUI</a> a mock
+version of <code>YAHOO.util.Connect.asyncRequest</code> is provided.
+If you include <a href="../doctest-yui.js">doctest-yui.js</a> in your
+test then that function will be replaced with something more suitable
+for use with Doctest.  
+
 <h2>To Do</h2>
 
 <p>
