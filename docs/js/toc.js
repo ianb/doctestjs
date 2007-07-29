@@ -8,6 +8,7 @@ function contentsOnLoad() {
         var marker = document.createElement('a');
         marker.setAttribute('name', name);
         el.parentNode.insertBefore(marker, el);
+        el.setAttribute('id', name);
         var li = document.createElement('li');
         var anchor = document.createElement('a');
         anchor.setAttribute('href', '#'+name);

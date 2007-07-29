@@ -35,6 +35,10 @@ div#contents li {
 div#contents ul {
   padding-left: 1em;
 }
+
+:target {
+  border: 2px dashed #f00;
+}
 </style>
 <link rel="stylesheet" type="text/css" href="../doctest.css">
 
@@ -224,6 +228,37 @@ to test everything at once.
 
 <p>The file <a href="template.html">template.html</a> can be copied to
 setup new tests. </p>
+
+<h2>Asynchronous Calls</h2>
+
+<p> One problem with this implementation of Doctest is that everything
+must be synchronous.  That is, code using things like
+<code>XMLHttpRequest</code> will have problems, because Javascript
+will never stop executing until the test is done, and generally
+requests like that only start running once Javascript has started
+running. </p>
+
+<p> It's possible this will be fixed in the future, but until then
+you'll have to write your code in a synchronous style.  You can also
+set up synchronous mock objects that act similarly to how the
+asynchronous objects work.  For instance, imagine you have a
+<code>sendRequest(uri, data, callback)</code> routine; in your test
+you could implement this like:
+
+<pre>
+// Set this variable in your tests to control the mock:
+nextRequestResponse = null;
+MyModule.sendRequest = function (uri, data, callback) {
+    writeln('Requesting '+uri);
+    if (data) {
+        writeln('Data: '+repr(data));
+    }
+    callback(nextRequestResponse);
+};
+</pre>
+
+This can call code in a different order than in a real situation, but
+it is usually a good simulation. </p>
 
 <h2>To Do</h2>
 
