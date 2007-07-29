@@ -55,11 +55,11 @@ doctest.uninstallMockYUI = function () {
 };
 
 doctest.installMockYUI = function () {
-    YAHOO.util.Connect.asyncRequest = doctest.mockYUIAsyncResponse;
+    YAHOO.util.Connect.asyncRequest = doctest.mockYUIAsyncRequest;
 }
 
 try {
-    var doctest.realYUIAsyncRequest = YAHOO.util.Connect.asyncRequest;
+    doctest.realYUIAsyncRequest = YAHOO.util.Connect.asyncRequest;
     doctest.installMockYUI();
 } catch (e) {
     throw("Could not install mock YAHOO.util.Connect.asyncRequest: "+e);
