@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: doctest
-version: 0.1
+version: 0.9
 author:
   - Ian Bicking <ianb@colorstudy.com>
 abstract:
