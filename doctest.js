@@ -4,17 +4,8 @@ Javascript doctest runner
 Copyright 2006-2007 Ian Bicking
 
 This program is free software; you can redistribute it and/or modify it under 
-the terms of the GNU General Public License as published by the Free Software 
-Foundation; either version 2 of the License, or (at your option) any later 
-version.
+the terms of the MIT License.
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY 
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with 
-this program; if not, write to the Free Software Foundation, Inc., 59 Temple 
-Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
 
@@ -52,7 +43,7 @@ doctest.Parser = function (el) {
     throw('you forgot new!');
   }
   var text = doctest.getText(el);
-  var lines = text.split(/\n/);
+  var lines = text.split(/(\r\n|\r|\n)/);
   this.examples = [];
   var example_lines = [];
   var output_lines = [];
@@ -189,7 +180,7 @@ doctest.JSRunner.prototype.run = function (example) {
   try {
     var result = window.eval(example.example);
   } catch (e) {
-    writeln('Error: ' + e);
+    writeln('Error: ' + e.message);
     result = null;
     logDebug('Traceback for error '+e+':');
     if (e.stack) {
