@@ -1,9 +1,9 @@
-/* 
+/*
 
 Javascript doctest runner
 Copyright 2006-2007 Ian Bicking
 
-This program is free software; you can redistribute it and/or modify it under 
+This program is free software; you can redistribute it and/or modify it under
 the terms of the MIT License.
 
 */
@@ -18,27 +18,41 @@ function doctest(verbosity/*default=0*/, elementId/*optional*/,
       if (! el) {
           throw('No such element '+elementId);
       }
-      doctest.runDoctest(el, reporter);
+      var suite = new doctest.TestSuite([els], reporter);
   } else {
       var els = doctest.getElementsByTagAndClassName('pre', 'doctest');
-      for (var i=0; i<els.length; i++) {
-          doctest.runDoctest(els[i], reporter);
-      }
+      var suite = new doctest.TestSuite(els, reporter);
   }
-  reporter.finish();
+  suite.run();
 }
 
 doctest.runDoctest = function (el, reporter) {
   logDebug('Testing element '+doctest.repr(el));
   reporter.startElement(el);
   var parsed = new doctest.Parser(el);
-  var runner = new doctest.JSRunner(reporter)
+  var runner = new doctest.JSRunner(reporter);
   for (var i=0; i<parsed.examples.length; i++) {
     runner.run(parsed.examples[i]);
   }
 };
 
+doctest.TestSuite = function (els, reporter) {
+  if (this === window) {
+    throw('you forgot new!');
+  }
+  this.els = els;
+  this.reporter = reporter;
+};
+
+doctest.TestSuite.run = function () {
+  for (var i=0; i<this.els.length; i++) {
+    doctestRun(this.els[i], this.reporter);
+  }
+  this.reporter.finish();
+};
+
 doctest.Parser = function (el) {
+  var ex;
   if (this === window) {
     throw('you forgot new!');
   }
@@ -95,11 +109,11 @@ doctest.Reporter = function (container, verbosity) {
   this.success = 0;
   this.failure = 0;
   this.elements = 0;
-}
+};
 
 doctest.Reporter.prototype.startElement = function (el) {
   this.elements += 1;
-}
+};
 
 doctest.Reporter.prototype.reportSuccess = function (example, output) {
   if (this.verbosity > 0) {
@@ -114,7 +128,7 @@ doctest.Reporter.prototype.reportSuccess = function (example, output) {
     }
   }
   this.success += 1;
-}
+};
 
 doctest.Reporter.prototype.reportFailure = function (example, output) {
   this.write('Failed example:\n');
@@ -126,7 +140,7 @@ doctest.Reporter.prototype.reportFailure = function (example, output) {
   this.write('Got:\n');
   this.write(this.formatOutput(output));
   this.failure += 1;
-}
+};
 
 doctest.Reporter.prototype.finish = function () {
   this.writeln((this.success+this.failure)
@@ -139,11 +153,11 @@ doctest.Reporter.prototype.finish = function () {
   this.writeln(this.success + ' passed and '
                + '<span style="color: '+color+'">'
                + this.failure + '</span> failed.');
-}
+};
 
 doctest.Reporter.prototype.writeln = function (text) {
   this.write(text+'\n');
-}
+};
 
 doctest.Reporter.prototype.write = function (text) {
   var leading = /^[ ]*/.exec(text)[0];
@@ -153,26 +167,26 @@ doctest.Reporter.prototype.write = function (text) {
   }
   text = text.replace(/\n/g, '<br>');
   this.container.innerHTML += text;
-}
+};
 
 doctest.Reporter.prototype.formatOutput = function (text) {
   if (! text) {
     return '    <span style="color: #999">(nothing)</span>\n';
   }
   var lines = text.split(/\n/);
-  var output = ''
+  var output = '';
   for (var i=0; i<lines.length; i++) {
     output += '    '+doctest.escapeHTML(lines[i])+'\n';
   }
   return output;
-}
+};
 
 doctest.JSRunner = function (reporter) {
   if (this === window) {
     throw('you forgot new!');
   }
   this.reporter = reporter;
-}
+};
 
 doctest.JSRunner.prototype.run = function (example) {
   var cap = new doctest.OutputCapturer();
@@ -181,7 +195,7 @@ doctest.JSRunner.prototype.run = function (example) {
     var result = window.eval(example.example);
   } catch (e) {
     writeln('Error: ' + e.message);
-    result = null;
+    var result = null;
     logDebug('Traceback for error '+e+':');
     if (e.stack) {
       var stack = e.stack.split('\n');
@@ -206,7 +220,7 @@ doctest.JSRunner.prototype.run = function (example) {
     writeln(doctest.repr(result));
   }
   cap.stopCapture();
-  success = this.checkResult(cap.output, example.output)
+  var success = this.checkResult(cap.output, example.output);
   if (success) {
     this.reporter.reportSuccess(example, cap.output);
   } else {
@@ -214,7 +228,7 @@ doctest.JSRunner.prototype.run = function (example) {
     logDebug('Failure: '+doctest.repr(example.output)
              +' != '+doctest.repr(cap.output));
   }
-}
+};
 
 doctest.JSRunner.prototype.checkResult = function (got, expected) {
   expected = expected.replace(/[\n\r]*$/, '') + '\n';
@@ -228,7 +242,7 @@ doctest.JSRunner.prototype.checkResult = function (got, expected) {
   expected = expected.replace(/\n/, '\\n');
   var re = new RegExp(expected);
   return got.search(re) != -1;
-}
+};
 
 RegExp.escape = function(text) {
   if (!arguments.callee.sRE) {
@@ -241,28 +255,28 @@ RegExp.escape = function(text) {
     );
   }
   return text.replace(arguments.callee.sRE, '\\$1');
-}
+};
 
 doctest.OutputCapturer = function () {
   if (this === window) {
     throw('you forgot new!');
   }
   this.output = '';
-}
+};
 
 var output = null;
 
 doctest.OutputCapturer.prototype.capture = function () {
   output = this;
-}
+};
 
 doctest.OutputCapturer.prototype.stopCapture = function () {
   output = null;
-}
+};
 
 doctest.OutputCapturer.prototype.write = function (text) {
   this.output += text;
-}
+};
 
 function writeln() {
   for (var i=0; i<arguments.length; i++) {
@@ -315,7 +329,7 @@ doctest.getText = function (el) {
     }
   }
   return text;
-}
+};
 
 doctest.reload = function (button/*optional*/) {
     if (button) {
@@ -357,7 +371,7 @@ doctest.repr = function (o) {
         return "[" + typeof(o) + "]";
     }
     if (typeof(o) == "function") {
-        ostring = ostring.replace(/^\s+/, "").replace(/\s+/g, " ");
+        var ostring = ostring.replace(/^\s+/, "").replace(/\s+/g, " ");
         var idx = ostring.indexOf("{");
         if (idx != -1) {
             ostring = ostring.substr(o, idx) + "{...}";
@@ -375,7 +389,7 @@ doctest.repr.registry = [
          .replace(/[\b]/g, "\\b")
          .replace(/[\n]/g, "\\n")
          .replace(/[\t]/g, "\\t")
-         .replace(/[\r]/g, "\\r"); 
+         .replace(/[\r]/g, "\\r");
          return o;
      }],
     [function (o) {
@@ -386,7 +400,7 @@ doctest.repr.registry = [
     [function (o) {
          var typ = typeof o;
          if ((typ != 'object' && ! (type == 'function' && typeof o.item == 'function')) ||
-             o === null || 
+             o === null ||
              typeof o.length != 'number' ||
              o.nodeType === 3) {
              return false;
@@ -452,13 +466,13 @@ if (typeof repr == 'undefined') {
 }
 
 if (typeof log == 'undefined') {
-    if (typeof console != 'undefined' 
+    if (typeof console != 'undefined'
         && typeof console.log != 'undefined') {
         log = console.log;
     } else {
-        function log() {
+        log = function () {
             // FIXME: do something
-        }
+        };
     }
 }
 
@@ -469,4 +483,3 @@ if (typeof logDebug == 'undefined') {
 if (typeof logInfo == 'undefined') {
     logInfo = log;
 }
-
