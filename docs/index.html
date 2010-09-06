@@ -327,7 +327,8 @@ Something was done
   <li>Implement CommonJS loading/module. </li>
 
   <li>Since almost <i>everything</i> in Javascript has output, perhaps
-  no expected output should mean the same as <code>...</code>. </li>
+  no expected output should mean the same as <code>...</code>. Also
+  this would catch everything but an error. </li>
 
   <li>Maybe use <code>>>></code> for the prompt, similar to the
   console.  Or make it more pluggable?  Allow actual HTML to break up
@@ -343,6 +344,11 @@ Something was done
   <code>&lt;pre&gt;</code> into HTML and associate examples with this
   HTML, but that's not that hard to do (at least if you don't mind
   losing any existing HTML in the pre). </li>
+
+  <li>The parser doesn't check for many errors, e.g., you can
+  interleave "output" with expressions, depending on whether you use
+  the <code>></code> prompt.</li>
+
 </ol>
 </p>
 

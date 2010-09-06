@@ -395,6 +395,14 @@ doctest.JSRunner.prototype.finishRun = function(example) {
 };
 
 doctest.JSRunner.prototype.checkResult = function (got, expected) {
+  if (! expected) {
+    // We special case a no-expected-output case, to just test that
+    // there is no "Error:" in the text
+    if (/Error:/.exec(got)) {
+      return false;
+    }
+    return true;
+  }
   expected = expected.replace(/[\n\r]*$/, '') + '\n';
   got = got.replace(/[\n\r]*$/, '') + '\n';
   if (expected == '...\n') {
