@@ -89,15 +89,24 @@ doctest.Context.prototype.run = function (parserIndex) {
 };
 
 doctest.Parser = function (el) {
-  var newHTML = document.createElement('span');
-  newHTML.className = 'doctest-example-set';
-  newHTML.setAttribute('id', doctest.genID('example-set'));
   if (this === window) {
     throw('you forgot new!');
   }
   if (! el) {
     throw('Bad call to doctest.Parser');
   }
+  if (el.getAttribute('parsed-id')) {
+    var examplesID = el.getAttribute('parsed-id');
+    if (doctest._allExamples[examplesID]) {
+      this.examples = doctest._allExamples[examplesID];
+      return;
+    }
+  }
+  var newHTML = document.createElement('span');
+  newHTML.className = 'doctest-example-set';
+  var examplesID = doctest.genID('example-set');
+  newHTML.setAttribute('id', examplesID);
+  el.setAttribute('parsed-id', examplesID);
   var text = doctest.getText(el);
   var lines = text.split(/(?:\r\n|\r|\n)/);
   this.examples = [];
@@ -133,7 +142,10 @@ doctest.Parser = function (el) {
   }
   el.innerHTML = '';
   el.appendChild(newHTML);
+  doctest._allExamples[examplesID] = this.examples;
 };
+
+doctest._allExamples = {};
 
 doctest.Example = function (example, output) {
   if (this === window) {
@@ -179,7 +191,7 @@ doctest.Example.prototype.markExample = function (name, detail) {
     return;
   }
   if (this.detailID) {
-    var el = document.getElementById(this.detailId);
+    var el = document.getElementById(this.detailID);
     el.parentNode.removeChild(el);
     this.detailID = null;
   }
@@ -234,9 +246,11 @@ doctest.Reporter.prototype.reportSuccess = function (example, output) {
 
 doctest.Reporter.prototype.reportFailure = function (example, output) {
   this.write('Failed example:\n');
-  this.write('<span style="color: #00f">'
-             +this.formatOutput(example.example)
-             +'</span>');
+  this.write('<span style="color: #00f"><a href="#'
+             + example.htmlID
+             + '" class="doctest-failure-link" title="Go to example">'
+             + this.formatOutput(example.example)
+             +'</a></span>');
   this.write('Expected:\n');
   this.write(this.formatOutput(example.output));
   this.write('Got:\n');

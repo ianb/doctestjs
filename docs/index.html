@@ -37,7 +37,7 @@ div#contents ul {
 }
 
 :target {
-  border: 2px dashed #f00;
+  border-left: 2px solid #f00;
 }
 </style>
 <link rel="stylesheet" type="text/css" href="../doctest.css">
@@ -226,7 +226,7 @@ id of the <code>&lt;pre&gt;</code> element you want to test.  If you
 don't provide it then all pre elements with
 <code>class="doctest"</code> are selected.  Lastly the output is
 placed in a pre with the id <code>outputId</code>, or
-<code>id="doctestOutput</code> if none is given. </p>
+<code>id="doctestOutput"</code> if none is given. </p>
 
 <p>Typically you run this code with <code>&lt;button
 onclick="doctest(...)"&gt;test&lt;/button&gt;</code>.  It can be
@@ -242,6 +242,11 @@ to test everything at once.
 
 <p>The file <a href="template.html">template.html</a> can be copied to
 setup new tests. </p>
+
+<p>An example of a complete runner is:</p>
+
+<button onclick="doctest()">Run all tests</button>
+<pre id="doctestOutput"></pre>
 
 <h2>Asynchronous Calls and delays</h2>
 
