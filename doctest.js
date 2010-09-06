@@ -18,7 +18,7 @@ function doctest(verbosity/*default=0*/, elementId/*optional*/,
       if (! el) {
           throw('No such element '+elementId);
       }
-      var suite = new doctest.TestSuite([els], reporter);
+      var suite = new doctest.TestSuite([el], reporter);
   } else {
       var els = doctest.getElementsByTagAndClassName('pre', 'doctest');
       var suite = new doctest.TestSuite(els, reporter);
@@ -27,13 +27,14 @@ function doctest(verbosity/*default=0*/, elementId/*optional*/,
 }
 
 doctest.runDoctest = function (el, reporter) {
-  logDebug('Testing element '+doctest.repr(el));
+  logDebug('Testing element', el);
   reporter.startElement(el);
+  if (el === null) {
+    throw('runDoctest() with a null element');
+  }
   var parsed = new doctest.Parser(el);
   var runner = new doctest.JSRunner(reporter);
-  for (var i=0; i<parsed.examples.length; i++) {
-    runner.run(parsed.examples[i]);
-  }
+  runner.runParsed(parsed);
 };
 
 doctest.TestSuite = function (els, reporter) {
@@ -41,14 +42,50 @@ doctest.TestSuite = function (els, reporter) {
     throw('you forgot new!');
   }
   this.els = els;
+  this.parsers = [];
+  for (var i=0; i<els.length; i++) {
+    this.parsers.push(new doctest.Parser(els[i]));
+  }
   this.reporter = reporter;
 };
 
-doctest.TestSuite.run = function () {
-  for (var i=0; i<this.els.length; i++) {
-    doctestRun(this.els[i], this.reporter);
+doctest.TestSuite.prototype.run = function (ctx) {
+  if (! ctx) {
+    ctx = new doctest.Context(this);
   }
-  this.reporter.finish();
+  if (! ctx.runner ) {
+    ctx.runner = new doctest.JSRunner(this.reporter);
+  }
+  return ctx.run();
+};
+
+// FIXME: should this just be part of TestSuite?
+doctest.Context = function (testSuite) {
+  if (this === window) {
+    throw('You forgot new!');
+  }
+  this.parserIndex = -1;
+  this.statementIndex = 0;
+  this.testSuite = testSuite;
+  this.lastExample = null;
+  this.runner = null;
+  this.timeout = 0;
+  this.timeoutFunc = null;
+};
+
+doctest.Context.prototype.run = function (parserIndex) {
+  var self = this;
+  parserIndex = parserIndex || 0;
+  if (parserIndex >= this.testSuite.parsers.length) {
+    logDebug('All examples from all sections tested');
+    return;
+  }
+  logDebug('Testing example ' + (parserIndex+1) + ' of '
+           + this.testSuite.parsers.length);
+  var runNext = function () {
+    self.run(parserIndex+1);
+  };
+  this.runner.runParsed(this.testSuite.parsers[parserIndex], 0, runNext);
 };
 
 doctest.Parser = function (el) {
@@ -56,8 +93,11 @@ doctest.Parser = function (el) {
   if (this === window) {
     throw('you forgot new!');
   }
+  if (! el) {
+    throw('Bad call to doctest.Parser');
+  }
   var text = doctest.getText(el);
-  var lines = text.split(/(\r\n|\r|\n)/);
+  var lines = text.split(/(?:\r\n|\r|\n)/);
   this.examples = [];
   var example_lines = [];
   var output_lines = [];
@@ -70,14 +110,14 @@ doctest.Parser = function (el) {
       }
       example_lines = [];
       output_lines = [];
-      line = doctest.strip(line.substr(1));
+      line = line.substr(1).replace(/ *$/, '').replace(/^ /, '');
       example_lines.push(line);
     } else if (/^>/.test(line)) {
       if (! example_lines.length) {
         throw('Bad example: '+doctest.repr(line)+'\n'
               +'> line not preceded by $');
       }
-      line = doctest.strip(line.substr(1));
+      line = line.substr(1).replace(/ *$/, '').replace(/^ /, '');
       example_lines.push(line);
     } else {
       output_lines.push(line);
@@ -113,6 +153,7 @@ doctest.Reporter = function (container, verbosity) {
 
 doctest.Reporter.prototype.startElement = function (el) {
   this.elements += 1;
+  logDebug('Adding element', el);
 };
 
 doctest.Reporter.prototype.reportSuccess = function (example, output) {
@@ -176,7 +217,7 @@ doctest.Reporter.prototype.formatOutput = function (text) {
   var lines = text.split(/\n/);
   var output = '';
   for (var i=0; i<lines.length; i++) {
-    output += '    '+doctest.escapeHTML(lines[i])+'\n';
+    output += '    '+doctest.escapeSpaces(doctest.escapeHTML(lines[i]))+'\n';
   }
   return output;
 };
@@ -188,15 +229,59 @@ doctest.JSRunner = function (reporter) {
   this.reporter = reporter;
 };
 
+doctest.JSRunner.prototype.runParsed = function (parsed, index, finishedCallback) {
+  var self = this;
+  index = index || 0;
+  if (index >= parsed.examples.length) {
+    if (finishedCallback) {
+      finishedCallback();
+    }
+    return;
+  }
+  var example = parsed.examples[index];
+  if (typeof example == 'undefined') {
+    throw('Undefined example (' + (index+1) + ' of ' + parsed.examples.length + ')');
+  }
+  doctest._waitCond = null;
+  this.run(example);
+  var finishThisRun = function () {
+    self.finishRun(example);
+    self.runParsed(parsed, index+1, finishedCallback);
+  };
+  if (doctest._waitCond !== null) {
+    if (typeof doctest._waitCond == 'number') {
+      var condition = null;
+      var time = 0;
+    } else {
+      var condition = doctest._waitCond;
+      // FIXME: shouldn't be hard-coded
+      var time = 0.1;
+    }
+    var timeoutFunc = function () {
+      if (condition === null
+          || condition()) {
+        finishThisRun();
+      } else {
+        // Condition not met, try again soon...
+        logDebug('Condition not met, trying again later');
+        setTimeout(timeoutFunc, time);
+      }
+    };
+    setTimeout(timeoutFunc, time);
+  } else {
+    finishThisRun();
+  }
+};
+
 doctest.JSRunner.prototype.run = function (example) {
-  var cap = new doctest.OutputCapturer();
-  cap.capture();
+  this.capturer = new doctest.OutputCapturer();
+  this.capturer.capture();
   try {
     var result = window.eval(example.example);
   } catch (e) {
     writeln('Error: ' + e.message);
     var result = null;
-    logDebug('Traceback for error '+e+':');
+    logDebug('Traceback for error', e);
     if (e.stack) {
       var stack = e.stack.split('\n');
       for (var i=0; i<stack.length; i++) {
@@ -219,14 +304,17 @@ doctest.JSRunner.prototype.run = function (example) {
       && result !== null) {
     writeln(doctest.repr(result));
   }
-  cap.stopCapture();
-  var success = this.checkResult(cap.output, example.output);
+};
+
+doctest.JSRunner.prototype.finishRun = function(example) {
+  this.capturer.stopCapture();
+  var success = this.checkResult(this.capturer.output, example.output);
   if (success) {
-    this.reporter.reportSuccess(example, cap.output);
+    this.reporter.reportSuccess(example, this.capturer.output);
   } else {
-    this.reporter.reportFailure(example, cap.output);
+    this.reporter.reportFailure(example, this.capturer.output);
     logDebug('Failure: '+doctest.repr(example.output)
-             +' != '+doctest.repr(cap.output));
+             +' != '+doctest.repr(this.capturer.output));
   }
 };
 
@@ -300,16 +388,29 @@ function write(text) {
 
 doctest.write = write;
 
+doctest._waitCond = null;
+
+function wait(conditionOrTime) {
+  if (typeof conditionOrTime == 'undefined'
+      || conditionOrTime === null) {
+    // same as wait-some-small-amount-of-time
+    conditionOrTime = 0;
+  }
+  doctest._waitCond = conditionOrTime;
+};
+
+doctest.wait = wait;
+
 function assert(expr, statement) {
-    if (typeof expr == 'string') {
-        if (! statement) {
-            statement = expr;
-        }
-        expr = eval(expr);
+  if (typeof expr == 'string') {
+    if (! statement) {
+      statement = expr;
     }
-    if (! expr) {
-        throw('AssertionError: '+statement);
-    }
+    expr = eval(expr);
+  }
+  if (! expr) {
+    throw('AssertionError: '+statement);
+  }
 }
 
 doctest.assert = assert;
@@ -332,11 +433,11 @@ doctest.getText = function (el) {
 };
 
 doctest.reload = function (button/*optional*/) {
-    if (button) {
-        button.innerHTML = 'reloading...';
-        button.disabled = true;
-    }
-    location.reload();
+  if (button) {
+    button.innerHTML = 'reloading...';
+    button.disabled = true;
+  }
+  location.reload();
 };
 
 /* Taken from MochiKit */
@@ -438,11 +539,20 @@ doctest.strip = function (str) {
     return str.replace(/\s+$/, "").replace(/^\s+/, "");
 };
 
+doctest.rstrip = function (str) {
+  str = str + "";
+  return str.replace(/\s+$/, "");
+};
+
 doctest.escapeHTML = function (s) {
     return s.replace(/&/g, '&amp;')
     .replace(/\"/g, "&quot;")
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+};
+
+doctest.escapeSpaces = function (s) {
+  return s.replace(/  /g, '&nbsp; ');
 };
 
 doctest.extend = function (obj, extendWith) {
