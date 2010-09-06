@@ -89,7 +89,9 @@ doctest.Context.prototype.run = function (parserIndex) {
 };
 
 doctest.Parser = function (el) {
-  var ex;
+  var newHTML = document.createElement('span');
+  newHTML.className = 'doctest-example-set';
+  newHTML.setAttribute('id', doctest.genID('example-set'));
   if (this === window) {
     throw('you forgot new!');
   }
@@ -105,8 +107,9 @@ doctest.Parser = function (el) {
     var line = lines[i];
     if (/^[$]/.test(line)) {
       if (example_lines.length) {
-        ex = new doctest.Example(example_lines, output_lines);
+        var ex = new doctest.Example(example_lines, output_lines);
         this.examples.push(ex);
+        newHTML.appendChild(ex.createSpan());
       }
       example_lines = [];
       output_lines = [];
@@ -124,9 +127,12 @@ doctest.Parser = function (el) {
     }
   }
   if (example_lines.length) {
-    ex = new doctest.Example(example_lines, output_lines);
+    var ex = new doctest.Example(example_lines, output_lines);
     this.examples.push(ex);
+    newHTML.appendChild(ex.createSpan());
   }
+  el.innerHTML = '';
+  el.appendChild(newHTML);
 };
 
 doctest.Example = function (example, output) {
@@ -135,6 +141,60 @@ doctest.Example = function (example, output) {
   }
   this.example = example.join('\n');
   this.output = output.join('\n');
+  this.htmlID = null;
+  this.detailID = null;
+};
+
+doctest.Example.prototype.createSpan = function () {
+  var id = doctest.genID('example');
+  var span = document.createElement('span');
+  span.className = 'doctest-example';
+  span.setAttribute('id', id);
+  this.htmlID = id;
+  var exampleSpan = document.createElement('span');
+  exampleSpan.className = 'doctest-example-code';
+  var exampleLines = this.example.split(/\n/);
+  for (var i=0; i<exampleLines.length; i++) {
+    var promptSpan = document.createElement('span');
+    promptSpan.className = 'doctest-example-prompt';
+    promptSpan.innerHTML = i == 0 ? '$ ' : '&gt; ';
+    exampleSpan.appendChild(promptSpan);
+    var lineSpan = document.createElement('span');
+    lineSpan.className = 'doctest-example-code-line';
+    lineSpan.appendChild(document.createTextNode(exampleLines[i]));
+    exampleSpan.appendChild(lineSpan);
+    exampleSpan.appendChild(document.createTextNode('\n'));
+  }
+  span.appendChild(exampleSpan);
+  var outputSpan = document.createElement('span');
+  outputSpan.className = 'doctest-example-output';
+  outputSpan.appendChild(document.createTextNode(this.output));
+  span.appendChild(outputSpan);
+  span.appendChild(document.createTextNode('\n'));
+  return span;
+};
+
+doctest.Example.prototype.markExample = function (name, detail) {
+  if (! this.htmlID) {
+    return;
+  }
+  if (this.detailID) {
+    var el = document.getElementById(this.detailId);
+    el.parentNode.removeChild(el);
+    this.detailID = null;
+  }
+  var span = document.getElementById(this.htmlID);
+  span.className = span.className.replace(/ doctest-failure/, '')
+                   .replace(/ doctest-success/, '')
+                   + ' ' + name;
+  if (detail) {
+    this.detailID = doctest.genID('doctest-example-detail');
+    var detailSpan = document.createElement('span');
+    detailSpan.className = 'doctest-example-detail';
+    detailSpan.setAttribute('id', this.detailID);
+    detailSpan.appendChild(document.createTextNode(detail));
+    span.appendChild(detailSpan);
+  }
 };
 
 doctest.Reporter = function (container, verbosity) {
@@ -169,6 +229,7 @@ doctest.Reporter.prototype.reportSuccess = function (example, output) {
     }
   }
   this.success += 1;
+  example.markExample('doctest-success');
 };
 
 doctest.Reporter.prototype.reportFailure = function (example, output) {
@@ -181,6 +242,7 @@ doctest.Reporter.prototype.reportFailure = function (example, output) {
   this.write('Got:\n');
   this.write(this.formatOutput(output));
   this.failure += 1;
+  example.markExample('doctest-failure', 'Actual output:\n' + output);
 };
 
 doctest.Reporter.prototype.finish = function () {
@@ -279,7 +341,7 @@ doctest.JSRunner.prototype.run = function (example) {
   try {
     var result = window.eval(example.example);
   } catch (e) {
-    writeln('Error: ' + e.message);
+    writeln('Error: ' + (e.message || e));
     var result = null;
     logDebug('Traceback for error', e);
     if (e.stack) {
@@ -364,6 +426,15 @@ doctest.OutputCapturer.prototype.stopCapture = function () {
 
 doctest.OutputCapturer.prototype.write = function (text) {
   this.output += text;
+};
+
+// Used to create unique IDs:
+doctest._idGen = 0;
+
+doctest.genID = function (prefix) {
+  prefix = prefix || 'generic-doctest';
+  var id = doctest._idGen++;
+  return prefix + '-' + doctest._idGen;
 };
 
 function writeln() {

@@ -89,6 +89,9 @@ check that its output is what you expected.  For example:
 
 <pre class="doctest" id="dt-factorial">
 $ function factorial(n) {
+>     if (typeof n != 'number') {
+>         throw('Not a number: '+n);
+>     }
 >     if (n == 0) {
 >         return 1;
 >     } else {
@@ -98,6 +101,10 @@ $ function factorial(n) {
 ...
 $ factorial(3)
 6
+$ factorial(4)
+20
+$ factorial('foo')
+bar
 </pre>
 <button onclick="doctest(0, 'dt-factorial',
 'dt-factorial-out')">test</button>

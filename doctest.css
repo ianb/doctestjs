@@ -11,3 +11,20 @@ pre.output {
   border-left: 3px solid #9f9;
   padding-left: 1em;
 }
+
+.doctest-example-prompt {
+  color: #333;
+}
+
+.doctest-success {
+  color: #060;
+}
+
+.doctest-failure {
+  color: #600;
+}
+
+.doctest-example-detail {
+  color: #060;
+  font-weight: bold;
+}
