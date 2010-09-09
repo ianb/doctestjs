@@ -1,4 +1,3 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
 <title>Doctest/JS: unit testing for Javascript made simple</title>
@@ -40,7 +39,7 @@ div#contents ul {
   border-left: 2px solid #f00;
 }
 </style>
-<link rel="stylesheet" type="text/css" href="../doctest.css">
+<link rel="stylesheet" type="text/css" href="../doctest.css" />
 
 </head>
 
@@ -50,25 +49,25 @@ div#contents ul {
 <p>
 Author: Ian Bicking
 &lt;<a href="mailto:ianb@colorstudy.com">ianb@colorstudy.com</a>&gt;
-<p>
+</p>
 
 <div id="contents"></div>
 
 <h2>License &amp; Download</h2>
 
 <p> This library is licensed under the <a href="license.txt">GPL</a>.
-You can download it from the Mercurial repository at <a
-href="http://bitbucket.org/ianb/doctestjs/">http://bitbucket.org/ianb/doctestjs/</a>
-with <code>hg clone http://bitbucket.org/ianb/doctestjs/</code> or <a
-href="http://bitbucket.org/ianb/doctestjs/get/tip.zip">download a
+You can download it from the git repository at <a
+href="http://github.com/ianb/doctestjs/">http://github.com/ianb/doctestjs/</a>
+with <code>git clone http://github.com/ianb/doctestjs.git/</code> or <a
+href="http://github.com/ianb/doctestjs/zipball/master">download a
 zip</a> </p>
 
 <p>Bugs may be reported on the <a
-href="http://bitbucket.org/ianb/doctestjs/issues/">issue tracker</a>.
+href="http://github.com/ianb/doctestjs/issues">issue tracker</a>.
 Patches are best provided by forking the repository through
-bitbucket.org, and then submitting a pull request.  If you are using
-doctest/js, or have written about it, consider noting this on <a
-href="http://bitbucket.org/ianb/doctestjs/wiki/Home">the wiki</a>.</p>
+github.com, and then submitting a pull request.  If you are using
+doctest.js, or have written about it, consider noting this on <a
+href="http://github.com/ianb/doctestjs/wiki">the wiki</a>.</p>
 
 <h2>Introduction</h2>
 
@@ -84,7 +83,7 @@ xUnit style of testing that had become the defacto standard for
 testing.  (In my opinion, an unfortunate defactor standard.)
 </p>
 
-<p> The basic idea for a doctest is very simple: run an expression and
+<div> The basic idea for a doctest is very simple: run an expression and
 check that its output is what you expected.  For example:
 
 <pre class="doctest" id="dt-factorial">
@@ -115,9 +114,9 @@ Here we define a function and test it in-place.  Typically of course
 you'd define the functions in your normal <code>.js</code> files
 (which you'd include as normal with <code>&lt;script&gt;</code>), and
 then simply use them in the examples.
-</p>
+</div>
 
-<p> The format is fairly simple:
+<div> The format is fairly simple:
 
 <ul>
   <li>Put your examples inside <code>&lt;pre
@@ -146,11 +145,11 @@ then simply use them in the examples.
   onclick="doctest()"&gt;test&lt;/button&gt;</code></li>
 
 </ul>
-</p>
+</div>
 
 <h2>Output and repr</h2>
 
-<p> Doctest tries to act like a <a
+<div> Doctest tries to act like a <a
 href="http://en.wikipedia.org/wiki/REPL" title="Read Eval Print
 Loop">REPL</a>: read an expression or statement, evaluate it, print
 the result.  The basic loop is:
@@ -165,13 +164,13 @@ the result.  The basic loop is:
   <li>Compare everything printed to what the example shows</li>
   <li>Repeat to bottom (regardless of errors).</li>
 </ol>
-</p>
+</div>
 
 <p> Specifically, <code>writeln(str, ...)</code> writes strings.  You
 can use this in your own code if you want, or use something like
 <code>writeln(someFunction())</code> to avoid <code>repr</code>. </p>
 
-<p> <b><code>repr(obj)</code></b> gets the <em>programmer's
+<div> <b><code>repr(obj)</code></b> gets the <em>programmer's
 representation</em> of an object.  The representation of a string is
 the Javascript literal for that string.  The representation of an
 Array <code>[repr(item0), repr(item1), ...]</code>.  (The code for
@@ -186,9 +185,11 @@ MyClass.prototype.__repr__ = function () {
 };
 </pre>
 
+</div>
+
 <h2>Exceptions and Logging</h2>
 
-<p> It's encouraged that you test exception cases in your code.  You
+<div> It's encouraged that you test exception cases in your code.  You
 do this like:
 
 <pre class="doctest" id="dt-exception">
@@ -206,6 +207,8 @@ Error: parent.getElementsByTagName is not a function
 <button onclick="doctest.reload(this)">reload</button>
 <pre id="dt-exception-out" class="output">Output:
 </pre>
+
+</div>
 
 <p> Unfortunately this hides the traceback.  Doctest will try to print
 the traceback to the logs; it's not as good a traceback, but it might
@@ -343,7 +346,7 @@ mySpy("foo")
 <p>The args are kept in <code>mySpy.args</code>, the <code>this</code>
 object in <code>mySpy.self</code>.</p>
 
-<p><code>Spy</code> takes an option object as the second argument,
+<div><code>Spy</code> takes an option object as the second argument,
 with several options:
 
 <dl>
@@ -367,14 +370,13 @@ with several options:
 
 You may set global defaults for these options with
 <code>doctest.defaultSpyOptions</code>, for instance to always write
-calls.</p>
+calls.</div>
 
 <p>If you use <code>writes</code> and <code>spy.wait()</code> then the
 function call will be printed out immediately after the wait.</p>
 
 <h2>To Do</h2>
 
-<p>
 <ol>
   <li>Detail should be displayed (but not matched for) when there is
   an exception</li>
@@ -401,6 +403,5 @@ function call will be printed out immediately after the wait.</p>
   the <code>></code> prompt.</li>
 
 </ol>
-</p>
 
 </body> </html>
