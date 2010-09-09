@@ -697,7 +697,9 @@ if (typeof repr == 'undefined') {
 if (typeof log == 'undefined') {
     if (typeof console != 'undefined'
         && typeof console.log != 'undefined') {
-        log = console.log;
+        log = function () {
+          console.log.apply(console, arguments);
+        };
     } else {
         log = function () {
             // FIXME: do something

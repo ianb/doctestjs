@@ -37,3 +37,6 @@ Also included is a simple mock object.  An example of using it::
     > });
     $ success.wait();
     success({value1: "something", value2: true})
+
+For more and better (and live) examples see `the doctest.js website
+<http://ianb.github.com/doctestjs/>`_.
