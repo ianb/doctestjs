@@ -1,7 +1,7 @@
 /*
 
 Javascript doctest runner
-Copyright 2006-2007 Ian Bicking
+Copyright 2006-2010 Ian Bicking
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the MIT License.
@@ -734,13 +734,13 @@ doctest.Spy = function (name, options) {
     self.selfList.push(this);
     // It might be possible to get the caller?
     if (self.writes) {
-      writeln(self.formatCall(this, arguments));
+      writeln(self.formatCall());
     }
     if (self.throwError) {
       throw self.throwError;
     }
     if (self.applies) {
-      return self.applies.apply(self.binds || this, arguments);
+      return self.applies.apply(this, arguments);
     }
     return self.returns;
   };
@@ -752,17 +752,21 @@ doctest.Spy = function (name, options) {
   }
 };
 
-doctest.Spy.prototype.formatCall = function (thisObj, args) {
+doctest.Spy.prototype.formatCall = function () {
   var s = '';
-  if (thisObj !== window) {
-    s += doctest.repr(thisObj, true) + '.';
+  if (this.self !== window) {
+    s += doctest.repr(this.self, true) + '.';
   }
-  s += this.name + '(';
-  for (var i=0; i<args.length; i++) {
+  s += this.name;
+  if (this.args === null) {
+    return s + ':never called';
+  }
+  s += '(';
+  for (var i=0; i<this.args.length; i++) {
     if (i) {
       s += ', ';
     }
-    s += doctest.repr(args[i], true);
+    s += doctest.repr(this.args[i], true);
   }
   s += ')';
   return s;

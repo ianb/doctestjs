@@ -98,7 +98,6 @@ $ function factorial(n) {
 >         return n * factorial(n-1);
 >     }
 > }
-...
 $ factorial(3)
 6
 $ factorial(4)
@@ -133,11 +132,12 @@ then simply use them in the examples.
   <code>&lt;</code> in HTML).</li>
 
   <li>After your expression, put the expected result of the
-  expression.</li>
+  expression.  Or put nothing if you want to ignore the result.</li>
 
-  <li>Use <code>...</code> to match all or part of the text.  For
-  instance, when you define a function you don't care about the value
-  of the expression (which is the function object itself). </li>
+  <li>Use <code>...</code> to match all or part of the text.  If you
+  have <i>only</i> <code>...</code> then doctest will fill in the
+  value for informational purposes, kind of like a way of peeking at
+  the output. </li>
 
   <li>Include on the page a <code>&lt;pre
   id="doctestOutput"&gt;</code> where the output will go. </li>
@@ -304,6 +304,73 @@ Something was done
 <pre id="dt-async2-out" class="output">Output:
 </pre>
 
+<p>When using <code>wait(callback)</code> there will still be a
+timeout.  All timeouts are in milliseconds; the default timeout is
+2000 (2 seconds).  If that much time passes the wait will be
+considered a failure.  You can pass a second argument with a timeout,
+or set <code>doctest.defaultTimeout</code> to change the value of that
+timeout.</p>
+
+<h2>Auto-run</h2>
+
+<p>If you append <code>?doctestRun</code> to your URL, then
+<code>doctest()</code> will be run immediately on page load.  Usually
+you can pass any query string to a static file and it will be ignored,
+so this lets you autorun tests more easily.  After editing, just
+reload the page to run the tests with your fresh code.</p>
+
+<h2>Spy/Mock</h2>
+
+<p>Also included is a simple mock object called <code>Spy</code>.
+This object can be called, and you can check if it is called and how.
+You use it like:</p>
+
+<pre class="doctest" id="spy-example">
+$ function funcWithCallback(callback) {
+>   setTimeout(function () {callback('foo')}, 0.1);
+> }
+$ mySpy = Spy('mySpy');
+$ funcWithCallback(mySpy.func);
+$ mySpy.wait();
+$ writeln(mySpy.formatCall());
+mySpy("foo")
+</pre>
+<button onclick="doctest(1, 'spy-example', 'spy-example-out')">test</button>
+<button onclick="doctest.reload(this)">reload</button>
+<pre id="spy-example-out" class="output">Output:
+</pre>
+
+<p>The args are kept in <code>mySpy.args</code>, the <code>this</code>
+object in <code>mySpy.self</code>.</p>
+
+<p><code>Spy</code> takes an option object as the second argument,
+with several options:
+
+<dl>
+  <dt><code>writes</code> (bool)</dt>
+  <dd>If true, then everytime the function is called it will write the
+  function call (like <code>mySpy.formatCall()</code> does explicitly
+  in the example).</dd>
+
+  <dt><code>returns</code></dt>
+  <dd>This is the value that is returned when the function is called.
+  Defaults to <code>null</code>.</dd>
+
+  <dt><code>throwError</code></dt>
+  <dd>This is an error that is thrown when the function is called.</dd>
+
+  <dt><code>applies</code></dt>
+  <dd>This is a function that will be called.  Setting this basically
+  makes the function wrap this other function.</dd>
+
+</dl>
+
+You may set global defaults for these options with
+<code>doctest.defaultSpyOptions</code>, for instance to always write
+calls.</p>
+
+<p>If you use <code>writes</code> and <code>spy.wait()</code> then the
+function call will be printed out immediately after the wait.</p>
 
 <h2>To Do</h2>
 
@@ -318,17 +385,7 @@ Something was done
   <li>Easier setup of per-test buttons, etc.  Maybe automatic
   setup.</li>
 
-  <li>Some function to run on load that will look at the query string
-  to automatically run some or all tests on the page.  And a function
-  that will see if the tests have already been run, and if so then
-  reload the page with that auto-tester, basically combining "reload"
-  and "test" in one button. </li>
-
   <li>Implement CommonJS loading/module. </li>
-
-  <li>Since almost <i>everything</i> in Javascript has output, perhaps
-  no expected output should mean the same as <code>...</code>. Also
-  this would catch everything but an error. </li>
 
   <li>Maybe use <code>>>></code> for the prompt, similar to the
   console.  Or make it more pluggable?  Allow actual HTML to break up
@@ -338,12 +395,6 @@ Something was done
   tools.  Pure string literal comparison is just one not-so-great
   way.  Also clarify how <code>repr()</code> works and can be
   extended. </li>
-
-  <li>Fancier HTML output.  Maybe even examples can be marked up
-  inline?  The parser would have to transform the
-  <code>&lt;pre&gt;</code> into HTML and associate examples with this
-  HTML, but that's not that hard to do (at least if you don't mind
-  losing any existing HTML in the pre). </li>
 
   <li>The parser doesn't check for many errors, e.g., you can
   interleave "output" with expressions, depending on whether you use
