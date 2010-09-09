@@ -267,8 +267,9 @@ doctest.Reporter.prototype.finish = function () {
   } else {
     var color = '#0f0';
   }
-  this.writeln(this.success + ' passed and '
-               + '<span style="color: '+color+'">'
+  this.writeln('<span class="passed">' + this.success + '</span> tests of '
+               + '<span class="total">' + (this.success+this.failure) + '</span> passed, '
+               + '<span class="failed" style="color: '+color+'">'
                + this.failure + '</span> failed.');
 };
 
