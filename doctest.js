@@ -543,8 +543,7 @@ doctest.reload = function (button/*optional*/) {
 };
 
 /* Taken from MochiKit */
-doctest.repr = function (o, extended) {
-    extended = extended || false;
+doctest.repr = function (o) {
     if (typeof o == 'undefined') {
         return 'undefined';
     } else if (o === null) {
@@ -559,7 +558,7 @@ doctest.repr = function (o, extended) {
         for (var i=0; i<doctest.repr.registry.length; i++) {
             var item = doctest.repr.registry[i];
             if (item[0](o)) {
-                return item[1](o, extended);
+                return item[1](o);
             }
         }
     } catch (e) {
@@ -571,13 +570,20 @@ doctest.repr = function (o, extended) {
     }
     try {
         var ostring = (o + "");
-        if (ostring == '[object Object]' && extended) {
+        if (ostring == '[object Object]') {
           ostring = '{';
+          var keys = [];
           for (var i in o) {
+            if (o[i] !== o.prototype[i]) {
+              keys.push(i);
+            }
+          }
+          keys.sort();
+          for (i=0; i<keys.length; i++) {
             if (ostring != '{') {
               ostring += ', ';
             }
-            ostring += i + ': ' + doctest.repr(o[i], extended);
+            ostring += keys[i] + ': ' + doctest.repr(o[keys[i]]);
           }
           ostring += '}';
         }
@@ -597,7 +603,7 @@ doctest.repr = function (o, extended) {
 doctest.repr.registry = [
     [function (o) {
          return typeof o == 'string';},
-     function (o, extended) {
+     function (o) {
          o = '"' + o.replace(/([\"\\])/g, '\\$1') + '"';
          o = o.replace(/[\f]/g, "\\f")
          .replace(/[\b]/g, "\\b")
@@ -608,7 +614,7 @@ doctest.repr.registry = [
      }],
     [function (o) {
          return typeof o == 'number';},
-     function (o, extended) {
+     function (o) {
          return o + "";
      }],
     [function (o) {
@@ -621,10 +627,10 @@ doctest.repr.registry = [
          }
          return true;
      },
-     function (o, extended) {
+     function (o) {
          var s = "[";
          for (var i=0; i<o.length; i++) {
-             s += doctest.repr(o[i], extended);
+             s += doctest.repr(o[i]);
              if (i != o.length-1) {
                  s += ", ";
              }
