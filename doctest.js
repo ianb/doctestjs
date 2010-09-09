@@ -64,23 +64,19 @@ doctest.Context = function (testSuite) {
   if (this === window) {
     throw('You forgot new!');
   }
-  this.parserIndex = -1;
-  this.statementIndex = 0;
   this.testSuite = testSuite;
-  this.lastExample = null;
   this.runner = null;
-  this.timeout = 0;
-  this.timeoutFunc = null;
 };
 
 doctest.Context.prototype.run = function (parserIndex) {
   var self = this;
   parserIndex = parserIndex || 0;
   if (parserIndex >= this.testSuite.parsers.length) {
-    logDebug('All examples from all sections tested');
+    logInfo('All examples from all sections tested');
+    this.runner.reporter.finish();
     return;
   }
-  logDebug('Testing example ' + (parserIndex+1) + ' of '
+  logInfo('Testing example ' + (parserIndex+1) + ' of '
            + this.testSuite.parsers.length);
   var runNext = function () {
     self.run(parserIndex+1);
@@ -241,7 +237,11 @@ doctest.Reporter.prototype.reportSuccess = function (example, output) {
     }
   }
   this.success += 1;
-  example.markExample('doctest-success');
+  if (doctest.strip(example.output) == '...') {
+    example.markExample('doctest-success', 'Output:\n' + output);
+  } else {
+    example.markExample('doctest-success');
+  }
 };
 
 doctest.Reporter.prototype.reportFailure = function (example, output) {
@@ -328,18 +328,30 @@ doctest.JSRunner.prototype.runParsed = function (parsed, index, finishedCallback
     if (typeof doctest._waitCond == 'number') {
       var condition = null;
       var time = 0;
+      var maxTime = null;
     } else {
       var condition = doctest._waitCond;
       // FIXME: shouldn't be hard-coded
-      var time = 0.1;
+      var time = 100;
+      var maxTime = doctest._waitTimeout || doctest.defaultTimeout;
     }
+    var start = (new Date()).getTime();
     var timeoutFunc = function () {
       if (condition === null
           || condition()) {
         finishThisRun();
       } else {
         // Condition not met, try again soon...
-        logDebug('Condition not met, trying again later');
+        if ((new Date()).getTime() - start > maxTime) {
+          // Time has run out
+          var msg = 'Error: wait(' + repr(condition) + ') has timed out';
+          writeln(msg);
+          logDebug(msg);
+          logDebug('Timeout after ' + ((new Date()).getTime() - start)
+                   + ' milliseconds');
+          finishThisRun();
+          return;
+        }
         setTimeout(timeoutFunc, time);
       }
     };
@@ -357,6 +369,7 @@ doctest.JSRunner.prototype.run = function (example) {
   } catch (e) {
     writeln('Error: ' + (e.message || e));
     var result = null;
+    logDebug('Error in expression: ' + example.example);
     logDebug('Traceback for error', e);
     if (e.stack) {
       var stack = e.stack.split('\n');
@@ -377,7 +390,8 @@ doctest.JSRunner.prototype.run = function (example) {
     }
   }
   if (typeof result != 'undefined'
-      && result !== null) {
+      && result !== null
+      && example.output) {
     writeln(doctest.repr(result));
   }
 };
@@ -395,14 +409,6 @@ doctest.JSRunner.prototype.finishRun = function(example) {
 };
 
 doctest.JSRunner.prototype.checkResult = function (got, expected) {
-  if (! expected) {
-    // We special case a no-expected-output case, to just test that
-    // there is no "Error:" in the text
-    if (/Error:/.exec(got)) {
-      return false;
-    }
-    return true;
-  }
   expected = expected.replace(/[\n\r]*$/, '') + '\n';
   got = got.replace(/[\n\r]*$/, '') + '\n';
   if (expected == '...\n') {
@@ -483,13 +489,15 @@ doctest.write = write;
 
 doctest._waitCond = null;
 
-function wait(conditionOrTime) {
+function wait(conditionOrTime, hardTimeout) {
+  // FIXME: should support a timeout even with a condition
   if (typeof conditionOrTime == 'undefined'
       || conditionOrTime === null) {
     // same as wait-some-small-amount-of-time
     conditionOrTime = 0;
   }
   doctest._waitCond = conditionOrTime;
+  doctest._waitTimeout = hardTimeout;
 };
 
 doctest.wait = wait;
@@ -534,7 +542,8 @@ doctest.reload = function (button/*optional*/) {
 };
 
 /* Taken from MochiKit */
-doctest.repr = function (o) {
+doctest.repr = function (o, extended) {
+    extended = extended || false;
     if (typeof o == 'undefined') {
         return 'undefined';
     } else if (o === null) {
@@ -549,7 +558,7 @@ doctest.repr = function (o) {
         for (var i=0; i<doctest.repr.registry.length; i++) {
             var item = doctest.repr.registry[i];
             if (item[0](o)) {
-                return item[1](o);
+                return item[1](o, extended);
             }
         }
     } catch (e) {
@@ -561,6 +570,16 @@ doctest.repr = function (o) {
     }
     try {
         var ostring = (o + "");
+        if (ostring == '[object Object]' && extended) {
+          ostring = '{';
+          for (var i in o) {
+            if (ostring != '{') {
+              ostring += ', ';
+            }
+            ostring += i + ': ' + doctest.repr(o[i], extended);
+          }
+          ostring += '}';
+        }
     } catch (e) {
         return "[" + typeof(o) + "]";
     }
@@ -577,7 +596,7 @@ doctest.repr = function (o) {
 doctest.repr.registry = [
     [function (o) {
          return typeof o == 'string';},
-     function (o) {
+     function (o, extended) {
          o = '"' + o.replace(/([\"\\])/g, '\\$1') + '"';
          o = o.replace(/[\f]/g, "\\f")
          .replace(/[\b]/g, "\\b")
@@ -588,7 +607,7 @@ doctest.repr.registry = [
      }],
     [function (o) {
          return typeof o == 'number';},
-     function (o) {
+     function (o, extended) {
          return o + "";
      }],
     [function (o) {
@@ -601,10 +620,10 @@ doctest.repr.registry = [
          }
          return true;
      },
-     function (o) {
+     function (o, extended) {
          var s = "[";
          for (var i=0; i<o.length; i++) {
-             s += repr(o[i]);
+             s += doctest.repr(o[i], extended);
              if (i != o.length-1) {
                  s += ", ";
              }
@@ -686,3 +705,119 @@ if (typeof logDebug == 'undefined') {
 if (typeof logInfo == 'undefined') {
     logInfo = log;
 }
+
+doctest.Spy = function (name, options) {
+  if (this === window) {
+    return new Spy(name, options);
+  }
+  name = name || 'spy';
+  options = options || {};
+  doctest.extendDefault(options, doctest.defaultSpyOptions);
+  var self = this;
+  this.name = name;
+  this.options = options;
+  this.called = false;
+  this.args = null;
+  this.self = null;
+  this.argList = [];
+  this.selfList = [];
+  this.writes = options.writes || false;
+  this.returns = options.returns || null;
+  this.applies = options.applies || null;
+  this.binds = options.binds || null;
+  this.throwError = options.throwError || null;
+  this.func = function () {
+    self.called = true;
+    self.args = doctest._argsToArray(arguments);
+    self.self = this;
+    self.argList.push(self.args);
+    self.selfList.push(this);
+    // It might be possible to get the caller?
+    if (self.writes) {
+      writeln(self.formatCall(this, arguments));
+    }
+    if (self.throwError) {
+      throw self.throwError;
+    }
+    if (self.applies) {
+      return self.applies.apply(self.binds || this, arguments);
+    }
+    return self.returns;
+  };
+  this.func.toString = function () {
+    return "Spy('" + self.name + "').func";
+  };
+  if (options.methods) {
+    this.methods(options.methods);
+  }
+};
+
+doctest.Spy.prototype.formatCall = function (thisObj, args) {
+  var s = '';
+  if (thisObj !== window) {
+    s += doctest.repr(thisObj, true) + '.';
+  }
+  s += this.name + '(';
+  for (var i=0; i<args.length; i++) {
+    if (i) {
+      s += ', ';
+    }
+    s += doctest.repr(args[i], true);
+  }
+  s += ')';
+  return s;
+};
+
+doctest.Spy.prototype.method = function (name, options) {
+  var desc = this.name + '.' + name;
+  var newSpy = new Spy(desc, options);
+  this.func[name] = newSpy.func;
+  return newSpy;
+};
+
+doctest.Spy.prototype.methods = function (props) {
+  for (var i in props) {
+    if (props[i] === props.prototype[i]) {
+      continue;
+    }
+    this.method(i, props[i]);
+  }
+  return this;
+};
+
+doctest.Spy.prototype.wait = function (timeout) {
+  var self = this;
+  var func = function () {
+    return self.called;
+  };
+  func.repr = function () {
+    return 'called:'+repr(self);
+  };
+  doctest.wait(func, timeout);
+};
+
+doctest.Spy.prototype.repr = function () {
+  return "Spy('" + this.name + "')";
+};
+
+doctest._argsToArray = function (args) {
+  var array = [];
+  for (var i=0; i<args.length; i++) {
+    array.push(args[i]);
+  }
+  return array;
+};
+
+Spy = doctest.Spy;
+
+doctest.defaultTimeout = 2000;
+
+doctest.defaultSpyOptions = {};
+
+window.addEventListener('load', function () {
+  var loc = window.location.search.substring(1);
+  if ((/doctestRun/).exec(loc)) {
+    doctest();
+  }
+}, false);
+
