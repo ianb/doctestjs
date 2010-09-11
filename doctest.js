@@ -574,7 +574,8 @@ doctest.repr = function (o) {
           ostring = '{';
           var keys = [];
           for (var i in o) {
-            if (o[i] !== o.prototype[i]) {
+            if (typeof o.prototype == 'undefined'
+                || o[i] !== o.prototype[i]) {
               keys.push(i);
             }
           }
