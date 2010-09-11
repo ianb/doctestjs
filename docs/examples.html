@@ -1,0 +1,99 @@
+<html>
+<head>
+<title>Doctest.js: examples</title>
+<script type="text/javascript" src="../doctest.js"></script>
+<script type="text/javascript" src="js/toc.js"></script>
+<link rel="stylesheet" type="text/css" href="doc.css" />
+<link rel="stylesheet" type="text/css" href="../doctest.css" />
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+
+</head>
+<body>
+<h1>Doctest.js: examples</h1>
+
+<div id="contents"></div>
+
+<div>
+  <button onclick="doctest()" type="button">Test all</button>
+  <pre id="doctestOutput"></pre>
+</div>
+
+<h2>Web Service</h2>
+
+<div>
+  You can use doctest.js to test APIs; in fact, it's reasonable to use
+  it for acceptance tests of the web APIs themselves, not just to test
+  the Javascript wrappers around those APIs.
+</div>
+
+<div>
+  In this example we'll access the <a
+  href="http://www.geonames.org/export/web-services.html">Geonames
+  API</a>.  First we'll want some routines to help us later on.  You
+  could put these into a separate <code>.js</code> file and include
+  it, but often (especially in an example ;) it's best to be fully
+  transparent and list all the routines out in the open...
+
+<pre class="doctest">
+$ apiLocation = 'http://ws.geonames.org/';
+$ function query(endpoint, q) {
+>   var success = Spy('geonames ' + endpoint + ' query success');
+>   success.applies = function (result) {
+>     x = result;
+>     logDebug(result);
+>     writeln(repr(result));
+>   };
+>   var error = Spy('geonames ' + endpoint + ' query failure');
+>   error.applies = function (result) {
+>     writeln('Error: ' + repr(result));
+>   };
+>   var url = apiLocation + endpoint;
+>   jQuery.ajax({
+>     url: url,
+>     data: q,
+>     dataType: "json",
+>     success: success.func,
+>     error: error.func
+>   });
+>   wait(function () {
+>     return error.called || success.called;
+>   }, 5000);
+> }
+</pre>
+
+  Some things to notice about this example:
+
+  <ul>
+    <li><code>apiLocation</code> is hard coded, but you could read it
+    from the query string, allowing something like
+    <code>test.html?apiLocation=http://localhost:8080</code>.
+    </li>
+
+    <li>We create a Spy for both success and failure, as we want to
+    track both of these.  We could just use functions, but mostly
+    there's an advantage to being able to watch <code>.called</code>.
+    If you used <code>{writes: true}</code> you might not need the
+    <code>.applies</code> functions.
+    </li>
+
+    <li><code>wait</code> can be called from anywhere.  That means
+    when you call this function doctest will wait until something is
+    called, and will test all the output since that time (either the
+    success or failure <code>writeln()</code>).  Timeout is the other
+    possibility.
+    </li>
+  </ul>
+
+</div>
+
+<div>
+  Now we'll use the routine to actually run a test:
+
+<pre class="doctest">
+$ query('postalCodeSearchJSON', {postalcode: 9011, maxRows: 5});
+{postalCodes: [{...}]}
+</pre>
+
+</div>
+
+</body> </html>
