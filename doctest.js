@@ -716,12 +716,18 @@ if (typeof logInfo == 'undefined') {
     logInfo = log;
 }
 
-doctest.Spy = function (name, options) {
+doctest.Spy = function (name, options, extraOptions) {
   if (this === window) {
     return new Spy(name, options);
   }
   name = name || 'spy';
   options = options || {};
+  if (typeof options == "function") {
+    options = {applies: options};
+  }
+  if (extraOptions) {
+    doctest.extendDefault(options, extraOptions);
+  }
   doctest.extendDefault(options, doctest.defaultSpyOptions);
   var self = this;
   this.name = name;
@@ -760,12 +766,16 @@ doctest.Spy = function (name, options) {
   if (options.methods) {
     this.methods(options.methods);
   }
+  doctest.spies[name] = this;
+  if (options.wait) {
+    this.wait();
+  }
 };
 
 doctest.Spy.prototype.formatCall = function () {
   var s = '';
-  if (this.self !== window) {
-    s += doctest.repr(this.self, true) + '.';
+  if (this.self !== window && this.self !== this) {
+    s += doctest.repr(this.self) + '.';
   }
   s += this.name;
   if (this.args === null) {
@@ -824,9 +834,11 @@ doctest._argsToArray = function (args) {
 
 Spy = doctest.Spy;
 
+spies = doctest.spies = {};
+
 doctest.defaultTimeout = 2000;
 
-doctest.defaultSpyOptions = {};
+doctest.defaultSpyOptions = {writes: true};
 
 window.addEventListener('load', function () {
   var loc = window.location.search.substring(1);

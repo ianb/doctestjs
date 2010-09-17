@@ -301,7 +301,6 @@ $ function funcWithCallback(callback) {
 $ mySpy = Spy('mySpy');
 $ funcWithCallback(mySpy.func);
 $ mySpy.wait();
-$ writeln(mySpy.formatCall());
 mySpy("foo")
 </pre>
 <button onclick="doctest(1, 'spy-example', 'spy-example-out')">test</button>
@@ -317,9 +316,10 @@ with several options:
 
 <dl>
   <dt><code>writes</code> (bool)</dt>
-  <dd>If true, then everytime the function is called it will write the
-  function call (like <code>mySpy.formatCall()</code> does explicitly
-  in the example).</dd>
+  <dd>If true (which is is by default), then everytime the function is
+  called it will write the function call (like
+  <code>mySpy.formatCall()</code> does explicitly in the
+  example).</dd>
 
   <dt><code>returns</code></dt>
   <dd>This is the value that is returned when the function is called.
@@ -330,7 +330,13 @@ with several options:
 
   <dt><code>applies</code></dt>
   <dd>This is a function that will be called.  Setting this basically
-  makes the function wrap this other function.</dd>
+  makes the function wrap this other function.  If the second argument
+  is a function (not an object of options) then it is assumed to be a
+  value for <code>applies</code>.</dd>
+
+  <dt><code>wait</code></dt>
+  <dd>If true, then after creating it will immediately call
+  <code>this.wait();</code>.  You can use this for shortcuts.</dd>
 
 </dl>
 
@@ -340,6 +346,14 @@ calls.</div>
 
 <p>If you use <code>writes</code> and <code>spy.wait()</code> then the
 function call will be printed out immediately after the wait.</p>
+
+<div>If you wish to be brief about it, you can do:
+
+<pre>
+$ funcWithCallback(Spy('test').func); spies.test.wait();
+$ // or:
+$ funcWithCallback(Spy('test', {wait: true}).func);
+</pre>
 
 <h2>To Do</h2>
 
