@@ -61,15 +61,21 @@ Author: Ian Bicking
 &lt;<a href="mailto:ianb@colorstudy.com">ianb@colorstudy.com</a>&gt;
 </p>
 
-<div id="contents"></div>
-<div><a href="examples.html">Examples</a></div>
+<!-- tables, so retro! -->
+<table style="width: 100%">
+  <tr>
+    <td style="width: 50%; vertical-align: top"><div id="contents"></div></td>
+    <td>Tests:<br />
+      <pre id="doctestOutput"></pre></td>
+  </tr>
+</table>
 
 <h2>License &amp; Download</h2>
 
 <p> This library is licensed under the <a href="license.txt">GPL</a>.
 You can download it from the git repository at <a
 href="http://github.com/ianb/doctestjs/">http://github.com/ianb/doctestjs/</a>
-with <code>git clone http://github.com/ianb/doctestjs.git/</code> or <a
+with <code>git clone http://github.com/ianb/doctestjs.git</code> or <a
 href="http://github.com/ianb/doctestjs/zipball/master">download a
 zip</a> </p>
 
@@ -87,17 +93,24 @@ href="http://python.org/doc/current/lib/module-doctest.html"><code>doctest</code
 from the Python world.  The original doctest is by Tim Peters.
 </p>
 
-<p> The idea behind doctest is to demonstrate code usage in such a way
-that the demonstrations themselves can be tested.  But it was soon
-found that the technique used was more compact and readable than the
-xUnit style of testing that had become the defacto standard for
-testing.  (In my opinion, an unfortunate defactor standard.)
-</p>
+<p> Doctest was originally written to test documentation, but its also
+an embodiment of a more general pattern of example-oriented testing.
+Tests are made up of code and the code's output, almost as though each
+statement is an implicit <code>assertEqual</code>.  In fact there
+isn't really a need for <code>assert*</code> helpers because it is
+implicit in all your tests. </p>
 
-<div> The basic idea for a doctest is very simple: run an expression and
-check that its output is what you expected.  For example:
+<div> An example is in order.  These examples are all self-complete,
+but typically you would include the <code>.js</code> file you were
+testing, and wouldn't define (many) functions inline in the code.  But
+don't be shy!  It will frequently make your tests more compact and
+thorough to define helper functions.</div>
 
-<pre class="doctest" id="dt-factorial">
+<div class="test">Here's an example, where we will define and test a
+<code>factorial</code> function.  Note I've written the test to get a
+failure:
+
+<pre class="doctest">
 $ function factorial(n) {
 >     if (typeof n != 'number') {
 >         throw('Not a number: '+n);
@@ -115,95 +128,89 @@ $ factorial(4)
 $ factorial('foo')
 bar
 </pre>
-<button onclick="doctest(0, 'dt-factorial',
-'dt-factorial-out')">test</button>
-<button onclick="doctest.reload(this)">reload</button>
-<pre id="dt-factorial-out" class="output">Output:
-</pre>
-
-Here we define a function and test it in-place.  Typically of course
-you'd define the functions in your normal <code>.js</code> files
-(which you'd include as normal with <code>&lt;script&gt;</code>), and
-then simply use them in the examples.
 </div>
 
-<div> The format is fairly simple:
-
-<ul>
-  <li>Put your examples inside <code>&lt;pre
-  class="doctest"&gt;</code>.</li>
-
-  <li>Start each new expression with <code>$</code>.</li>
-
-  <li>If your expression takes more than one line, use
-  <code>></code> at the beginning of each new line.  Note that you can
-  put <code>></code> directly in the HTML, you don't have to quote it
-  as <code>&amp;gt;</code> (you only have to quote
-  <code>&lt;</code> in HTML).</li>
-
-  <li>After your expression, put the expected result of the
-  expression.  Or put nothing if you want to ignore the result.</li>
-
-  <li>Use <code>...</code> to match all or part of the text.  If you
-  have <i>only</i> <code>...</code> then doctest will fill in the
-  value for informational purposes, kind of like a way of peeking at
-  the output. </li>
-
-  <li>Include on the page a <code>&lt;pre
-  id="doctestOutput"&gt;</code> where the output will go. </li>
-
-  <li>Include on the page a button like <code>&lt;button
-  onclick="doctest()"&gt;test&lt;/button&gt;</code></li>
-
-</ul>
-</div>
-
-<h2>Output and repr</h2>
-
-<div> Doctest tries to act like a <a
-href="http://en.wikipedia.org/wiki/REPL" title="Read Eval Print
-Loop">REPL</a>: read an expression or statement, evaluate it, print
-the result.  The basic loop is:
-
-<ol>
-  <li>Parse all the examples. </li>
-  <li>Evaluate an expression. </li>
-  <li>If the result is <code>null</code>, do nothing and show
-  nothing.</li>
-  <li>If the expression throws an exception, do <code>writeln('Error: '+exception)</code></li>
-  <li>Otherwise <code>writeln(repr(result))</code>.</li>
-  <li>Compare everything printed to what the example shows</li>
-  <li>Repeat to bottom (regardless of errors).</li>
-</ol>
-</div>
-
-<p> Specifically, <code>writeln(str, ...)</code> writes strings.  You
-can use this in your own code if you want, or use something like
-<code>writeln(someFunction())</code> to avoid <code>repr</code>. </p>
-
-<div> <b><code>repr(obj)</code></b> gets the <em>programmer's
-representation</em> of an object.  The representation of a string is
-the Javascript literal for that string.  The representation of an
-Array <code>[repr(item0), repr(item1), ...]</code>.  (The code for
-<code>repr</code> is taken from <a
-href="http://mochikit.com">MochiKit</a>.)  You can customize what
-<code>repr</code> does to your own objects by implementing a method
-<code>__repr__</code> or <code>repr</code>, for example:
+<div>There's not much in the HTML that you don't see right there.  If
+you did <i>view source</i> you'd see something like this:
 
 <pre>
-MyClass.prototype.__repr__ = function () {
-    return '[MyClass name='+repr(this.name)+']';
-};
+&lt;div class="test"&gt;Description...
+&lt;pre class="doctest"&gt;
+$ code
+&gt; ... continuation line
+expected output
+&lt;/pre&gt;
+&lt;/div&gt;
 </pre>
 
+Note that you don't have to quote <code>></code> as
+<code>&amp;gt;</code> -- it's a little-known HTML fact that only
+<code>&lt;</code> really needs to be quoted.</div>
+
+<div>Try hitting the <button type="button">test</button> button and
+see what happens.  You might notice it reloads the page.  This is
+because everytime you run a test you've probably changed code to
+<i>fix</i> that test (or changed code to stop it from failing), and
+the reload gets you that fresh new code.</div>
+
+<div>The format is like an interactive interpreter.  There isn't any
+one interpreter for Javascript, so the prompts have been modelled on
+shell prompts, <code>$</code> starts a statement and <code>></code>
+continues the statement.  Statements can be as long as you would like,
+and can even have multiple parts (separated with <code>;</code>), they
+are simply chunks that are run all at once.</div>
+
+<div>The <i>output</i> is the return value of the statement.  In our
+example <code>factorial(3)</code> returns 6.  Output can also include
+anything that is explicitly written (using
+<code>writeln(value)</code>), and if there's an error then the error
+is also written out (as you can see with
+<code>factorial('foo')</code>, which is an error).</div>
+
+<div><b>Output:</b> <i>every</i> Javascript expression or statement
+has a return value, and some of those values are quite tedious (like a
+function definition).  So if you don't include any expected output for
+an example, then the return value is simply ignored.</div>
+
+<div><b>Errors:</b> errors are worth testing for, so an error isn't
+necessarily a test failure.  An error just results in the text
+<code>Error: &lt;error message&gt;</code> being printed out, which you
+can match for if you like.</div>
+
+<div><b>repr:</b> the <i>repr</i> of the result of a function is
+printed out.  This is an idea borrowed from Python: each object has a
+<i>programmer's representation</i>.  This is a helpful representation
+of the object, beyond simply what <code>obj.toString()</code> might
+return.  Arrays are displayed like <code>[obj1, obj2, ...]</code> for
+instance.  Generic objects are displayed as <code>{attr:
+value}</code>.  Objects can customize their output by defining a
+<code>repr()</code> method.</div>
+
+<div><b><code>...</code> (ellipsis):</b> sometimes there are portions
+of the output that are interesting, and portions that are boring.  Or
+parts might be volatile -- different on every test run.  You can
+ignore a portion of the test by using <code>...</code> in the output.
+All the matching is strictly textual.  Note even errors can be matched
+this way (maybe unintentionally).</div>
+
+<div><b>Writing:</b> there are two functions to write to the test
+output, <code>write()</code> and <code>writeln()</code> (like
+<code>write()</code> but adds a newline).  You can use these inside
+callbacks or loops to show bits of progress.
+(<code>console.log</code> may also still work, but isn't matched
+against.)</div>
+
+<div><b>Comments:</b> you can include comments anywhere, if you just
+want a comment in your test, do:
+  <pre>$ // look ma, nothing's executed!</pre>
 </div>
 
 <h2>Exceptions and Logging</h2>
 
-<div> It's encouraged that you test exception cases in your code.  You
-do this like:
+<div class="test"> It's encouraged that you test exception cases in
+your code.  You do this like:
 
-<pre class="doctest" id="dt-exception">
+<pre class="doctest">
 $ function countTag(parent, tag) {
 >     return parent.getElementsByTagName(tag).length;
 > }
@@ -213,78 +220,58 @@ $ countTag(document.getElementById('dt-exception'), 'pre');
 $ countTag({}, 'pre');
 Error: parent.getElementsByTagName is not a function
 </pre>
-<button onclick="doctest(0, 'dt-exception',
-'dt-exception-out')">test</button>
-<button onclick="doctest.reload(this)">reload</button>
-<pre id="dt-exception-out" class="output">Output:
-</pre>
 
 </div>
 
-<p> Unfortunately this hides the traceback.  Doctest will try to print
-the traceback to the logs; it's not as good a traceback, but it might
-be helpful anyway.  If you install <a
+<div> Unfortunately this hides the traceback.  Doctest will try to
+print the traceback to the logs; it's not as good a traceback, but it
+might be helpful anyway.  If you install <a
 href="https://addons.mozilla.org/en-US/firefox/addon/1843">Firebug</a>
-the traceback will be in the console.
-</p>
+or use Chrome's developer console, the traceback will be in the
+console.</div>
 
 <h2>Test Page Structure</h2>
 
-<p> As mentioned before, pages must contain certain structure.  You
-can have all your tests run together, or you can run pieces
-individually.  You must of course include <code>doctest.js</code> in
-your file, and then call <code>doctest()</code>.  There are optional
-arguments: <code>doctest(verbosity, elementId, outputId)</code>.
-<code>verbosity</code> defaults to 0.  <code>elementId</code> is the
-id of the <code>&lt;pre&gt;</code> element you want to test.  If you
-don't provide it then all pre elements with
-<code>class="doctest"</code> are selected.  Lastly the output is
-placed in a pre with the id <code>outputId</code>, or
-<code>id="doctestOutput"</code> if none is given. </p>
+<p>While there are ways to test specific things using doctest, writing
+the HTML to hook up the runner gets tedious quickly.  The easiest way
+to write a test is to look at <a
+href="autotemplate.html"><code>autotemplate.html</code></a> and copy
+it for your use.</p>
 
-<p>Typically you run this code with <code>&lt;button
-onclick="doctest(...)"&gt;test&lt;/button&gt;</code>.  It can be
-helpful to include a reload button next to that, since usually when
-you re-test you want to reload the page first.  You can use
-<code>&lt;button
-onclick="doctest.reload(this)"&gt;reload&lt;/button&gt;</code> for
-this.  You can include as many buttons as you want on the page; for
-instance, each individual pre test block can have a button to test
-just that block (as do the examples in this document), plus one button
-to test everything at once.
-</p>
+<div>Each test should be in an element <code>&lt;div
+class="test"&gt;</code>.  You can give the tests ids, or doctest will
+just number them for you if not.  You can include a description of the
+test to introduce and explain the test, then use <code>&lt;pre
+class="doctest"&gt;</code> to actually write your test in.</div>
 
-<p>The file <a href="template.html">template.html</a> can be copied to
-setup new tests. </p>
-
-<p>An example of a complete runner is:</p>
-
-<button onclick="doctest()">Run all tests</button>
-<pre id="doctestOutput"></pre>
+<div>The rest of the page is yours to do with as you want.
+Specifically you can include other HTML, manipulate it, see the
+result, etc.  Testing DOM operations is simple enough as a
+result.</div>
 
 <h2>Asynchronous Calls and delays</h2>
 
 <p> Not everything can be tested with call-result, specifically things
-that require callbacks and asynchronous activity.  Many DOM updates
+that require callbacks and asynchronous activity.  Some DOM updates
 require asynchronous activity, as one example -- even if it's just a
-moment that you have to release control from Javascript, it still
-takes a moment of that before DOM will reflect updates.
-XMLHttpRequests are another obvious example. </p>
+moment that you have to release control from Javascript, you still
+must release control from Javascript before the DOM will full reflect
+updates.  XMLHttpRequests are another obvious example. </p>
 
-<p> To invoke a wait during an example, call the <code>wait()</code>
-function.  This function can be called with a second timeout value,
-like <code>wait(1)</code>, and <code>wait()</code> alone means a
-0-second wait (which releases control momentarily).  You can also wait
-for a condition, like <code>wait(function () {return req.state ==
-1;});</code>. </p>
+<p> To let the test wait a while during an example, call the
+<code>wait()</code> function.  This function can be called with a
+millisecond timeout value, like <code>wait(1000)</code>, and
+<code>wait()</code> alone means a 0-second wait (which releases
+control momentarily).  You can also wait for a condition, like
+<code>wait(function () {return req.state == 1;});</code>. </p>
 
-<p>An example (with some DOM stuff to update):</p>
+<div class="test">An example (with some DOM stuff to update):
 
 <div style="border: #000 solid 1px">
   <span id="some-output">Output will go here</span>
 </div>
 
-<pre class="doctest" id="dt-async">
+<pre class="doctest">
 $ function updateDom() {
 >   var el = document.getElementById('some-output');
 >   el.innerHTML = 'Test Output';
@@ -295,12 +282,10 @@ $ wait();
 $ document.getElementById('some-output').innerHTML;
 "Test Output"
 </pre>
-<button onclick="doctest(0, 'dt-async', 'dt-async-out')">test</button>
-<button onclick="doctest.reload(this)">reload</button>
-<pre id="dt-async-out" class="output">Output:
-</pre>
 
-<pre class="doctest" id="dt-async2">
+And another example of a callback:
+
+<pre class="doctest">
 $ finished = false;
 ...
 $ function doSomethingSlowly(callback) {
@@ -313,10 +298,8 @@ $ doSomethingSlowly(function () {
 > wait(function () {return finished});
 Something was done
 </pre>
-<button onclick="doctest(1, 'dt-async2', 'dt-async2-out')">test</button>
-<button onclick="doctest.reload(this)">reload</button>
-<pre id="dt-async2-out" class="output">Output:
-</pre>
+
+</div>
 
 <p>When using <code>wait(callback)</code> there will still be a
 timeout.  All timeouts are in milliseconds; the default timeout is
@@ -325,39 +308,29 @@ considered a failure.  You can pass a second argument with a timeout,
 or set <code>doctest.defaultTimeout</code> to change the value of that
 timeout.</p>
 
-<h2>Auto-run</h2>
-
-<p>If you append <code>?doctestRun</code> to your URL, then
-<code>doctest()</code> will be run immediately on page load.  Usually
-you can pass any query string to a static file and it will be ignored,
-so this lets you autorun tests more easily.  After editing, just
-reload the page to run the tests with your fresh code.</p>
-
 <h2>Spy/Mock</h2>
 
 <p>Also included is a simple mock object called <code>Spy</code>.
-This object can be called, and you can check if it is called and how.
-You use it like:</p>
+This object can be called, and you can check if it is called and how.</p>
 
-<pre class="doctest" id="spy-example">
+<div class="test">You use it like:
+
+<pre class="doctest">
 $ function funcWithCallback(callback) {
->   setTimeout(function () {callback('foo')}, 0.1);
+>   setTimeout(function () {callback('foo')}, 100);
 > }
 $ mySpy = Spy('mySpy');
 $ funcWithCallback(mySpy.func);
 $ mySpy.wait();
 mySpy("foo")
 </pre>
-<button onclick="doctest(1, 'spy-example', 'spy-example-out')">test</button>
-<button onclick="doctest.reload(this)">reload</button>
-<pre id="spy-example-out" class="output">Output:
-</pre>
+
+</div>
 
 <p>The args are kept in <code>mySpy.args</code>, the <code>this</code>
 object in <code>mySpy.self</code>.</p>
 
-<div><code>Spy</code> takes an option object as the second argument,
-with several options:
+<div><code>Spy</code> takes an options object as the second argument:
 
 <dl>
   <dt><code>writes</code> (bool)</dt>
@@ -386,11 +359,12 @@ with several options:
 </dl>
 
 You may set global defaults for these options with
-<code>doctest.defaultSpyOptions</code>, for instance to always write
-calls.</div>
+<code>doctest.defaultSpyOptions</code>, for instance to never write
+calls (<code>{writes: false}</code>).</div>
 
-<p>If you use <code>writes</code> and <code>spy.wait()</code> then the
-function call will be printed out immediately after the wait.</p>
+<p>When using <code>writes</code> (as by default) then when you call
+<code>spy.wait()</code> the function call will be printed out
+immediately after the wait.</p>
 
 <div>If you wish to be brief about it, you can do:
 
@@ -399,6 +373,8 @@ $ funcWithCallback(Spy('test').func); spies.test.wait();
 $ // or:
 $ funcWithCallback(Spy('test', {wait: true}).func);
 </pre>
+
+</div>
 
 <h2>To Do</h2>
 
@@ -428,6 +404,8 @@ $ funcWithCallback(Spy('test', {wait: true}).func);
   the <code>></code> prompt.</li>
 
 </ol>
+
+<h2 href="examples.html">Examples</h2>
 
 
     </div>
