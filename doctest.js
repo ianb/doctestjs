@@ -766,12 +766,16 @@ doctest.autoSetup = function (parent) {
     // element whose id has just been added, it won't be noticed
     location.hash = location.hash;
   }
-  if (! document.getElementById('doctestOutput')) {
-    var output = document.createElement('pre');
+  var output = document.getElementById('doctestOutput');
+  if (! output) {
+    output = document.createElement('pre');
     output.setAttribute('id', 'doctestOutput');
     output.className = 'output';
     tags[0].parentNode.insertBefore(output, tags[0]);
-    var reloader = document.createElement('button');
+  }
+  var reloader = document.getElementById('doctestReload');
+  if (! reloader) {
+    reloader = document.createElement('button');
     reloader.setAttribute('type', 'button');
     reloader.innerHTML = 'test all';
     reloader.onclick = function () {
@@ -917,6 +921,7 @@ window.addEventListener('load', function () {
   var loc = window.location.search.substring(1);
   if (auto || (/doctestRun/).exec(loc)) {
     var elements = null;
+    // FIXME: we need to put the output near the specific test being tested:
     if (location.hash) {
       var el = document.getElementById(location.hash.substr(1));
       if (/\btest\b/.exec(el.className)) {
