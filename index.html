@@ -1,0 +1,442 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+<title>doctest.js</title>
+
+<script type="text/javascript" src="doctest.js"></script>
+<link rel="stylesheet" type="text/css" href="doctest.css" />
+<link rel="stylesheet" type="text/css" href="docs/doc.css" />
+<script type="text/javascript" src="docs/js/toc.js"></script>
+
+<style type="text/css">
+body {
+	margin-top: 1.0em;
+	background-color: #100207;
+        font-family: "Helvetica,Arial,FreeSans";
+	color: #ffffff;
+}
+#container {
+      margin: 0 auto;
+      width: 700px;
+}
+		h1 { font-size: 3.8em; color: #effdf8; margin-bottom: 3px; }
+		h1 .small { font-size: 0.4em; }
+		h1 a { text-decoration: none }
+		h2 { font-size: 1.5em; color: #effdf8; }
+    h3 { text-align: center; color: #effdf8; }
+    a { color: #effdf8; }
+    .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
+    .download { float: right; }
+		pre { background: #000; color: #fff; padding: 15px;}
+    hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
+    .footer { text-align:center; padding-top:30px; font-style: italic; }
+	</style>
+
+</head>
+
+<body class="autodoctest">
+  <a href="http://github.com/ianb/doctestjs"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+
+  <div id="container">
+
+    <div class="download">
+      <a href="http://github.com/ianb/doctestjs/zipball/master">
+        <img border="0" width="90" src="http://github.com/images/modules/download/zip.png"></a>
+      <a href="http://github.com/ianb/doctestjs/tarball/master">
+        <img border="0" width="90" src="http://github.com/images/modules/download/tar.png"></a>
+    </div>
+
+    <h1><a href="http://github.com/ianb/doctestjs">doctest.js</a>
+      <span class="small">by <a href="http://github.com/ianb">Ian Bicking</a></span></h1>
+
+    <div class="description">
+      Javascript testing framework inspired by Python's doctest
+    </div>
+
+    <div>
+      
+<h1>Doctest/JS: unit testing for Javascript made simple</h1>
+
+<p>
+Author: Ian Bicking
+&lt;<a href="mailto:ianb@colorstudy.com">ianb@colorstudy.com</a>&gt;
+</p>
+
+<!-- tables, so retro! -->
+<table style="width: 100%">
+  <tr>
+    <td style="width: 50%; vertical-align: top"><div id="contents"></div></td>
+    <td>Tests:<br />
+      <pre id="doctestOutput"></pre></td>
+  </tr>
+</table>
+
+<h2>License &amp; Download</h2>
+
+<p> This library is licensed under the <a href="license.txt">GPL</a>.
+You can download it from the git repository at <a
+href="http://github.com/ianb/doctestjs/">http://github.com/ianb/doctestjs/</a>
+with <code>git clone http://github.com/ianb/doctestjs.git</code> or <a
+href="http://github.com/ianb/doctestjs/zipball/master">download a
+zip</a> </p>
+
+<p>Bugs may be reported on the <a
+href="http://github.com/ianb/doctestjs/issues">issue tracker</a>.
+Patches are best provided by forking the repository through
+github.com, and then submitting a pull request.  If you are using
+doctest.js, or have written about it, consider noting this on <a
+href="http://github.com/ianb/doctestjs/wiki">the wiki</a>.</p>
+
+<h2>Introduction</h2>
+
+<p> Doctest/JS is a port of a widely used testing module <a
+href="http://python.org/doc/current/lib/module-doctest.html"><code>doctest</code></a>
+from the Python world.  The original doctest is by Tim Peters.
+</p>
+
+<p> Doctest was originally written to test documentation, but its also
+an embodiment of a more general pattern of example-oriented testing.
+Tests are made up of code and the code's output, almost as though each
+statement is an implicit <code>assertEqual</code>.  In fact there
+isn't really a need for <code>assert*</code> helpers because it is
+implicit in all your tests. </p>
+
+<div> An example is in order.  These examples are all self-complete,
+but typically you would include the <code>.js</code> file you were
+testing, and wouldn't define (many) functions inline in the code.  But
+don't be shy!  It will frequently make your tests more compact and
+thorough to define helper functions.</div>
+
+<div class="test">Here's an example, where we will define and test a
+<code>factorial</code> function.  Note I've written the test to get a
+failure:
+
+<pre class="doctest">
+$ function factorial(n) {
+>     if (typeof n != 'number') {
+>         throw('Not a number: '+n);
+>     }
+>     if (n == 0) {
+>         return 1;
+>     } else {
+>         return n * factorial(n-1);
+>     }
+> }
+$ factorial(3)
+6
+$ factorial(4)
+20
+$ factorial('foo')
+bar
+</pre>
+</div>
+
+<div>There's not much in the HTML that you don't see right there.  If
+you did <i>view source</i> you'd see something like this:
+
+<pre>
+&lt;div class="test"&gt;Description...
+&lt;pre class="doctest"&gt;
+$ code
+&gt; ... continuation line
+expected output
+&lt;/pre&gt;
+&lt;/div&gt;
+</pre>
+
+Note that you don't have to quote <code>></code> as
+<code>&amp;gt;</code> -- it's a little-known HTML fact that only
+<code>&lt;</code> really needs to be quoted.</div>
+
+<div>Try hitting the <button type="button">test</button> button and
+see what happens.  You might notice it reloads the page.  This is
+because everytime you run a test you've probably changed code to
+<i>fix</i> that test (or changed code to stop it from failing), and
+the reload gets you that fresh new code.</div>
+
+<div>The format is like an interactive interpreter.  There isn't any
+one interpreter for Javascript, so the prompts have been modelled on
+shell prompts, <code>$</code> starts a statement and <code>></code>
+continues the statement.  Statements can be as long as you would like,
+and can even have multiple parts (separated with <code>;</code>), they
+are simply chunks that are run all at once.</div>
+
+<div>The <i>output</i> is the return value of the statement.  In our
+example <code>factorial(3)</code> returns 6.  Output can also include
+anything that is explicitly written (using
+<code>writeln(value)</code>), and if there's an error then the error
+is also written out (as you can see with
+<code>factorial('foo')</code>, which is an error).</div>
+
+<div><b>Output:</b> <i>every</i> Javascript expression or statement
+has a return value, and some of those values are quite tedious (like a
+function definition).  So if you don't include any expected output for
+an example, then the return value is simply ignored.</div>
+
+<div><b>Errors:</b> errors are worth testing for, so an error isn't
+necessarily a test failure.  An error just results in the text
+<code>Error: &lt;error message&gt;</code> being printed out, which you
+can match for if you like.</div>
+
+<div><b>repr:</b> the <i>repr</i> of the result of a function is
+printed out.  This is an idea borrowed from Python: each object has a
+<i>programmer's representation</i>.  This is a helpful representation
+of the object, beyond simply what <code>obj.toString()</code> might
+return.  Arrays are displayed like <code>[obj1, obj2, ...]</code> for
+instance.  Generic objects are displayed as <code>{attr:
+value}</code>.  Objects can customize their output by defining a
+<code>repr()</code> method.</div>
+
+<div><b><code>...</code> (ellipsis):</b> sometimes there are portions
+of the output that are interesting, and portions that are boring.  Or
+parts might be volatile -- different on every test run.  You can
+ignore a portion of the test by using <code>...</code> in the output.
+All the matching is strictly textual.  Note even errors can be matched
+this way (maybe unintentionally).</div>
+
+<div><b>Writing:</b> there are two functions to write to the test
+output, <code>write()</code> and <code>writeln()</code> (like
+<code>write()</code> but adds a newline).  You can use these inside
+callbacks or loops to show bits of progress.
+(<code>console.log</code> may also still work, but isn't matched
+against.)</div>
+
+<div><b>Comments:</b> you can include comments anywhere, if you just
+want a comment in your test, do:
+  <pre>$ // look ma, nothing's executed!</pre>
+</div>
+
+<h2>Exceptions and Logging</h2>
+
+<div class="test"> It's encouraged that you test exception cases in
+your code.  You do this like:
+
+<pre class="doctest">
+$ function countTag(parent, tag) {
+>     return parent.getElementsByTagName(tag).length;
+> }
+...
+$ countTag(document.getElementById('dt-exception'), 'pre');
+0
+$ countTag({}, 'pre');
+Error: parent.getElementsByTagName is not a function
+</pre>
+
+</div>
+
+<div> Unfortunately this hides the traceback.  Doctest will try to
+print the traceback to the logs; it's not as good a traceback, but it
+might be helpful anyway.  If you install <a
+href="https://addons.mozilla.org/en-US/firefox/addon/1843">Firebug</a>
+or use Chrome's developer console, the traceback will be in the
+console.</div>
+
+<h2>Test Page Structure</h2>
+
+<p>While there are ways to test specific things using doctest, writing
+the HTML to hook up the runner gets tedious quickly.  The easiest way
+to write a test is to look at <a
+href="autotemplate.html"><code>autotemplate.html</code></a> and copy
+it for your use.</p>
+
+<div>Each test should be in an element <code>&lt;div
+class="test"&gt;</code>.  You can give the tests ids, or doctest will
+just number them for you if not.  You can include a description of the
+test to introduce and explain the test, then use <code>&lt;pre
+class="doctest"&gt;</code> to actually write your test in.</div>
+
+<div>The rest of the page is yours to do with as you want.
+Specifically you can include other HTML, manipulate it, see the
+result, etc.  Testing DOM operations is simple enough as a
+result.</div>
+
+<h2>Asynchronous Calls and delays</h2>
+
+<p> Not everything can be tested with call-result, specifically things
+that require callbacks and asynchronous activity.  Some DOM updates
+require asynchronous activity, as one example -- even if it's just a
+moment that you have to release control from Javascript, you still
+must release control from Javascript before the DOM will full reflect
+updates.  XMLHttpRequests are another obvious example. </p>
+
+<p> To let the test wait a while during an example, call the
+<code>wait()</code> function.  This function can be called with a
+millisecond timeout value, like <code>wait(1000)</code>, and
+<code>wait()</code> alone means a 0-second wait (which releases
+control momentarily).  You can also wait for a condition, like
+<code>wait(function () {return req.state == 1;});</code>. </p>
+
+<div class="test">An example (with some DOM stuff to update):
+
+<div style="border: #000 solid 1px">
+  <span id="some-output">Output will go here</span>
+</div>
+
+<pre class="doctest">
+$ function updateDom() {
+>   var el = document.getElementById('some-output');
+>   el.innerHTML = 'Test Output';
+> }
+...
+$ updateDom();
+$ wait();
+$ document.getElementById('some-output').innerHTML;
+"Test Output"
+</pre>
+
+And another example of a callback:
+
+<pre class="doctest">
+$ finished = false;
+...
+$ function doSomethingSlowly(callback) {
+>   setTimeout(function () {finished = true; callback();}, 1);
+> }
+...
+$ doSomethingSlowly(function () {
+>   writeln('Something was done');
+> });
+> wait(function () {return finished});
+Something was done
+</pre>
+
+</div>
+
+<p>When using <code>wait(callback)</code> there will still be a
+timeout.  All timeouts are in milliseconds; the default timeout is
+2000 (2 seconds).  If that much time passes the wait will be
+considered a failure.  You can pass a second argument with a timeout,
+or set <code>doctest.defaultTimeout</code> to change the value of that
+timeout.</p>
+
+<h2>Spy/Mock</h2>
+
+<p>Also included is a simple mock object called <code>Spy</code>.
+This object can be called, and you can check if it is called and how.</p>
+
+<div class="test">You use it like:
+
+<pre class="doctest">
+$ function funcWithCallback(callback) {
+>   setTimeout(function () {callback('foo')}, 100);
+> }
+$ mySpy = Spy('mySpy');
+$ funcWithCallback(mySpy.func);
+$ mySpy.wait();
+mySpy("foo")
+</pre>
+
+</div>
+
+<p>The args are kept in <code>mySpy.args</code>, the <code>this</code>
+object in <code>mySpy.self</code>.</p>
+
+<div><code>Spy</code> takes an options object as the second argument:
+
+<dl>
+  <dt><code>writes</code> (bool)</dt>
+  <dd>If true (which is is by default), then everytime the function is
+  called it will write the function call (like
+  <code>mySpy.formatCall()</code> does explicitly in the
+  example).</dd>
+
+  <dt><code>returns</code></dt>
+  <dd>This is the value that is returned when the function is called.
+  Defaults to <code>null</code>.</dd>
+
+  <dt><code>throwError</code></dt>
+  <dd>This is an error that is thrown when the function is called.</dd>
+
+  <dt><code>applies</code></dt>
+  <dd>This is a function that will be called.  Setting this basically
+  makes the function wrap this other function.  If the second argument
+  is a function (not an object of options) then it is assumed to be a
+  value for <code>applies</code>.</dd>
+
+  <dt><code>wait</code></dt>
+  <dd>If true, then after creating it will immediately call
+  <code>this.wait();</code>.  You can use this for shortcuts.</dd>
+
+</dl>
+
+You may set global defaults for these options with
+<code>doctest.defaultSpyOptions</code>, for instance to never write
+calls (<code>{writes: false}</code>).</div>
+
+<p>When using <code>writes</code> (as by default) then when you call
+<code>spy.wait()</code> the function call will be printed out
+immediately after the wait.</p>
+
+<div>If you wish to be brief about it, you can do:
+
+<pre>
+$ funcWithCallback(Spy('test').func); spies.test.wait();
+$ // or:
+$ funcWithCallback(Spy('test', {wait: true}).func);
+</pre>
+
+</div>
+
+<h2>To Do</h2>
+
+<ol>
+  <li>Detail should be displayed (but not matched for) when there is
+  an exception</li>
+
+  <li>Automatic creation of an output area for the report, if one
+  doesn't exist already.</li>
+
+  <li>Easier setup of per-test buttons, etc.  Maybe automatic
+  setup.</li>
+
+  <li>Implement CommonJS loading/module. </li>
+
+  <li>Maybe use <code>>>></code> for the prompt, similar to the
+  console.  Or make it more pluggable?  Allow actual HTML to break up
+  the input and output? (Would anyone ever want that?) </li>
+
+  <li>A clear, documented way to plug in different output comparison
+  tools.  Pure string literal comparison is just one not-so-great
+  way.  Also clarify how <code>repr()</code> works and can be
+  extended. </li>
+
+  <li>The parser doesn't check for many errors, e.g., you can
+  interleave "output" with expressions, depending on whether you use
+  the <code>></code> prompt.</li>
+
+</ol>
+
+<h2 href="examples.html">Examples</h2>
+
+
+    </div>
+
+    <h2>Download</h2>
+    <p>
+      You can download this project in either
+      <a href="http://github.com/ianb/doctestjs/zipball/master">zip</a> or
+      <a href="http://github.com/ianb/doctestjs/tarball/master">tar</a> formats.
+    </p>
+    <p>You can also clone the project with <a href="http://git-scm.com">Git</a>
+      by running:
+      <pre>$ git clone git://github.com/ianb/doctestjs</pre>
+    </p>
+
+    <div class="footer">
+      get the source code on GitHub : <a href="http://github.com/ianb/doctestjs">ianb/doctestjs</a>
+    </div>
+
+  </div>
+
+  <script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-6731441-12");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</body>
+</html>
