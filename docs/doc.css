@@ -11,6 +11,7 @@ code {
 h2, h3, h4, h5, h6 {
   border-bottom: 2px solid #000;
 }
+
 pre {
   border-left: 2px solid #bb3;
   padding-left: 1em;
@@ -30,5 +31,10 @@ div#contents ul {
 }
 
 :target {
-  border-left: 2px solid #f00;
+  border-bottom: 2px solid #f00;
+}
+
+/* I don't know why I need this: */
+div, p {
+  margin-bottom: 1em;
 }
