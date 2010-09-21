@@ -22,6 +22,9 @@ function contentsOnLoad() {
         toc.appendChild(li);
     }
     dest.appendChild(toc);
+    if (location.hash) {
+      location.hash = location.hash;
+    }
 }
 
 window.onload = contentsOnLoad;
