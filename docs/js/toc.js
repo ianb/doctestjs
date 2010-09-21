@@ -11,7 +11,12 @@ function contentsOnLoad() {
         el.setAttribute('id', name);
         var li = document.createElement('li');
         var anchor = document.createElement('a');
-        anchor.setAttribute('href', '#'+name);
+        if (el.getAttribute('href')) {
+          anchor.setAttribute('href', el.getAttribute('href'));
+          el.style.display = 'none';
+        } else {
+          anchor.setAttribute('href', '#'+name);
+        }
         li.appendChild(anchor);
         anchor.innerHTML = el.innerHTML;
         toc.appendChild(li);

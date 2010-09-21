@@ -9,16 +9,19 @@ the terms of the MIT License.
 */
 
 
-function doctest(verbosity/*default=0*/, elementId/*optional*/,
+function doctest(verbosity/*default=0*/, elements/*optional*/,
                  outputId/*optional*/) {
   var output = document.getElementById(outputId || 'doctestOutput');
   var reporter = new doctest.Reporter(output, verbosity || 0);
-  if (elementId) {
-      var el = document.getElementById(elementId);
-      if (! el) {
-          throw('No such element '+elementId);
+  if (elements) {
+      if (typeof elements == 'string') {
+        // Treat it as an id
+        elements = [document.getElementById(elementId)];
       }
-      var suite = new doctest.TestSuite([el], reporter);
+      if (! elements.length) {
+          throw('No elements');
+      }
+      var suite = new doctest.TestSuite(elements, reporter);
   } else {
       var els = doctest.getElementsByTagAndClassName('pre', 'doctest');
       var suite = new doctest.TestSuite(els, reporter);
@@ -423,7 +426,8 @@ doctest.JSRunner.prototype.checkResult = function (got, expected) {
   return got.search(re) != -1;
 };
 
-RegExp.escape = function(text) {
+// Should I really be setting this on RegExp?
+RegExp.escape = function (text) {
   if (!arguments.callee.sRE) {
     var specials = [
       '/', '.', '*', '+', '?', '|',
@@ -542,7 +546,7 @@ doctest.reload = function (button/*optional*/) {
   location.reload();
 };
 
-/* Taken from MochiKit */
+/* Taken from MochiKit, with an addition to print objects */
 doctest.repr = function (o) {
     if (typeof o == 'undefined') {
         return 'undefined';
@@ -599,7 +603,7 @@ doctest.repr = function (o) {
         }
     }
     return ostring;
-}
+};
 
 doctest.repr.registry = [
     [function (o) {
@@ -715,6 +719,74 @@ if (typeof logDebug == 'undefined') {
 if (typeof logInfo == 'undefined') {
     logInfo = log;
 }
+
+doctest.autoSetup = function (parent) {
+  var tags = doctest.getElementsByTagAndClassName('div', 'test', parent);
+  // First we'll make sure everything has an ID
+  var tagsById = {};
+  for (var i=0; i<tags.length; i++) {
+    var tagId = tags[i].getAttribute('id');
+    if (! tagId) {
+      tagId = 'test-' + (++doctest.autoSetup._idCount);
+      tags[i].setAttribute('id', tagId);
+    }
+    // FIXME: test uniqueness here, warn
+    tagsById[tagId] = tags[i];
+  }
+  // Then fill in the labels
+  for (i=0; i<tags.length; i++) {
+    var el = document.createElement('span');
+    el.className = 'test-id';
+    var anchor = document.createElement('a');
+    anchor.setAttribute('href', '#' + tags[i].getAttribute('id'));
+    anchor.appendChild(document.createTextNode(tagId));
+    var button = document.createElement('button');
+    button.innerHTML = 'test';
+    button.setAttribute('type', 'button');
+    button.setAttribute('test-id', tags[i].getAttribute('id'));
+    button.onclick = function () {
+      location.hash = '#' + this.getAttribute('test-id');
+      location.reload();
+    };
+    el.appendChild(anchor);
+    el.appendChild(button);
+    tags[i].insertBefore(el, tags[i].childNodes[0]);
+  }
+  // Lastly, create output areas in each section
+  for (i=0; i<tags.length; i++) {
+    var outEl = doctest.getElementsByTagAndClassName('pre', 'output', tags[i]);
+    if (! outEl.length) {
+      outEl = document.createElement('pre');
+      outEl.className = 'output';
+      outEl.setAttribute('id', tags[i].getAttribute('id') + '-output');
+    }
+  }
+  if (location.hash.length > 1) {
+    // This makes the :target CSS work, since if the hash points to an
+    // element whose id has just been added, it won't be noticed
+    location.hash = location.hash;
+  }
+  var output = document.getElementById('doctestOutput');
+  if (! output) {
+    output = document.createElement('pre');
+    output.setAttribute('id', 'doctestOutput');
+    output.className = 'output';
+    tags[0].parentNode.insertBefore(output, tags[0]);
+  }
+  var reloader = document.getElementById('doctestReload');
+  if (! reloader) {
+    reloader = document.createElement('button');
+    reloader.setAttribute('type', 'button');
+    reloader.innerHTML = 'test all';
+    reloader.onclick = function () {
+      location.hash = '';
+      location.reload();
+    };
+    output.parentNode.insertBefore(reloader, output);
+  }
+};
+
+doctest.autoSetup._idCount = 0;
 
 doctest.Spy = function (name, options, extraOptions) {
   if (this === window) {
@@ -841,9 +913,22 @@ doctest.defaultTimeout = 2000;
 doctest.defaultSpyOptions = {writes: true};
 
 window.addEventListener('load', function () {
+  var auto = false;
+  if (/\bautodoctest\b/.exec(document.body.className)) {
+    doctest.autoSetup();
+    auto = true;
+  }
   var loc = window.location.search.substring(1);
-  if ((/doctestRun/).exec(loc)) {
-    doctest();
+  if (auto || (/doctestRun/).exec(loc)) {
+    var elements = null;
+    // FIXME: we need to put the output near the specific test being tested:
+    if (location.hash) {
+      var el = document.getElementById(location.hash.substr(1));
+      if (/\btest\b/.exec(el.className)) {
+        elements = doctest.getElementsByTagAndClassName('pre', 'doctest', el);
+      }
+    }
+    doctest(0, elements);
   }
 }, false);
 
