@@ -2,8 +2,8 @@
 <head>
 <title>Blank Test</title>
 <script type="text/javascript" src="../doctest.js"></script>
-<!-- This stylesheet is optional: -->
-<link rel="stylesheet" type="text/css" href="../doctest.css">
+<!-- This stylesheet is optional, but does improve the output: -->
+<link rel="stylesheet" type="text/css" href="../doctest.css" />
 <style type="text/css">
 body {
   font-family: sans-serif;
@@ -23,17 +23,17 @@ the links to the Javascript files if necessary.</p>
 <div>
 <button onclick="doctest()">test all</button>
 <button onclick="doctest.reload(this)">reload</button>
-<br>
+<br />
 <pre id="doctestOutput" class="output"></pre>
 </div>
 
-<hr>
+<hr />
 
 <div>
 Test 1
 <button onclick="doctest(0, 'test1', 'output1')">test</button>
 <button onclick="doctest.reload(this)">reload</button>
-<br>
+<br />
 <pre id="output1" class="output"></pre>
 <pre id="test1" class="doctest">
 $ 1 + 1
@@ -41,13 +41,13 @@ $ 1 + 1
 </pre>
 </div>
 
-<hr>
+<hr />
 
 <div>
 Test 2
 <button onclick="doctest(0, 'test2', 'output2')">test</button>
 <button onclick="doctest.reload(this)">reload</button>
-<br>
+<br />
 <pre id="output2" class="output"></pre>
 <pre id="test2" class="doctest">
 $ 1 + 2
