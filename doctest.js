@@ -790,6 +790,9 @@ doctest.autoSetup._idCount = 0;
 
 doctest.Spy = function (name, options, extraOptions) {
   if (this === window) {
+    if (spies[name]) {
+      return spies[name];
+    }
     return new Spy(name, options);
   }
   name = name || 'spy';
