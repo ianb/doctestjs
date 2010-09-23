@@ -275,7 +275,7 @@ $ function funcWithCallback(callback) {
 >   setTimeout(function () {callback('foo')}, 100);
 > }
 $ mySpy = Spy('mySpy');
-$ funcWithCallback(mySpy.func);
+$ funcWithCallback(mySpy);
 $ mySpy.wait();
 mySpy("foo")
 </pre>
@@ -324,11 +324,60 @@ immediately after the wait.</p>
 <div>If you wish to be brief about it, you can do:
 
 <pre>
-$ funcWithCallback(Spy('test').func); spies.test.wait();
+$ funcWithCallback(Spy('test')); spies.test.wait();
 $ // or:
-$ funcWithCallback(Spy('test', {wait: true}).func);
+$ funcWithCallback(Spy('test', {wait: true}));
 </pre>
 
+</div>
+
+<div>Spies also have some attributes and methods of interest:
+
+  <dl>
+    <dt><code>.name</code></dt>
+    <dd>The name you gave the spy</dd>
+
+    <dt><code>.called</code></dt>
+    <dd>Whether this spy has been called yet</dd>
+
+    <dt><code>.args</code></dt>
+    <dd>The list of arguments it was called with (null if not yet
+    called)</dd>
+
+    <dt><code>.self</code></dt>
+    <dd>The value of <code>this</code> when called (if it was
+    used as a method)</dd>
+
+    <dt><code>.argList</code>, <code>.selfList</code></dt>
+    <dd>These are like <code>.args</code> and <code>.self</code>, but
+    are appended to for each call, giving a history of all the
+    calls.</dd>
+
+    <dt><code>.func</code></dt>
+    <dd>This is a function with no attributes.  You can use this if
+    you want to pass in a mock object that doesn't have all these
+    extra attributes and methods attached to it.</dd>
+
+    <dt><code>.formatCall()</code></dt>
+    <dd>This returns a string that represents how this function was
+    last called; it's what gets printed (if you have
+    <code>writes</code> on)</dd>
+
+    <dt><code>.method(name, options)</code></dt>
+    <dd>This adds a method to the object.  This is another spy object,
+    assigned to an attribute of the parent spy object and with an
+    appropriate name.  So <code>Spy('foo').method('bar')</code> will
+    give you a spy that is named <code>foo.bar</code>, and is
+    available as <code>spies.foo.bar</code>.</dd>
+
+    <dt><code>.methods(properties)</code></dt>
+    <dd>This takes a bunch of methods, with options for values (or
+    <code>null</code> if you don't care about options)</dd>
+
+    <dt><code>.wait(optional timeout)</code></dt>
+    <dd>This waits for the spy to be called.</dd>
+
+  </dl>
 </div>
 
 <h2>To Do</h2>

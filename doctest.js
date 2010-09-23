@@ -447,18 +447,18 @@ doctest.OutputCapturer = function () {
   this.output = '';
 };
 
-var output = null;
+doctest._output = null;
 
 doctest.OutputCapturer.prototype.capture = function () {
-  output = this;
+  doctest._output = this;
 };
 
 doctest.OutputCapturer.prototype.stopCapture = function () {
-  output = null;
+  doctest._output = null;
 };
 
 doctest.OutputCapturer.prototype.write = function (text) {
-  this.output += text;
+  doctest._output += text;
 };
 
 // Used to create unique IDs:
@@ -470,7 +470,7 @@ doctest.genID = function (prefix) {
   return prefix + '-' + doctest._idGen;
 };
 
-function writeln() {
+doctest.writeln = function () {
   for (var i=0; i<arguments.length; i++) {
     write(arguments[i]);
     if (i) {
@@ -478,19 +478,23 @@ function writeln() {
     }
   }
   write('\n');
+};
+
+if (typeof writeln == 'undefined') {
+  writeln = doctest.writeln;
 }
 
-doctest.writeln = writeln;
-
-function write(text) {
-  if (output !== null) {
-    output.write(text);
+doctest.write = function (text) {
+  if (doctest._output !== null) {
+    doctest._output.write(text);
   } else {
     log(text);
   }
-}
+};
 
-doctest.write = write;
+if (typeof write == 'undefined') {
+  write = doctest.write;
+}
 
 doctest._waitCond = null;
 
@@ -507,7 +511,7 @@ function wait(conditionOrTime, hardTimeout) {
 
 doctest.wait = wait;
 
-function assert(expr, statement) {
+doctest.assert = function (expr, statement) {
   if (typeof expr == 'string') {
     if (! statement) {
       statement = expr;
@@ -517,9 +521,11 @@ function assert(expr, statement) {
   if (! expr) {
     throw('AssertionError: '+statement);
   }
-}
+};
 
-doctest.assert = assert;
+if (typeof assert == 'undefined') {
+  assert = doctest.assert;
+}
 
 doctest.getText = function (el) {
   if (! el) {
@@ -789,36 +795,35 @@ doctest.autoSetup = function (parent) {
 doctest.autoSetup._idCount = 0;
 
 doctest.Spy = function (name, options, extraOptions) {
-  if (this === window) {
-    if (spies[name]) {
-      return spies[name];
-    }
-    return new Spy(name, options);
+  if (doctest.spies[name]) {
+    return doctest.spies[name];
   }
+  var self = function () {
+    return self.func.apply(this, arguments);
+  };
   name = name || 'spy';
   options = options || {};
-  if (typeof options == "function") {
+  if (typeof options == 'function') {
     options = {applies: options};
   }
   if (extraOptions) {
     doctest.extendDefault(options, extraOptions);
   }
   doctest.extendDefault(options, doctest.defaultSpyOptions);
-  var self = this;
-  this.name = name;
-  this.options = options;
-  this.called = false;
-  this.calledWait = false;
-  this.args = null;
-  this.self = null;
-  this.argList = [];
-  this.selfList = [];
-  this.writes = options.writes || false;
-  this.returns = options.returns || null;
-  this.applies = options.applies || null;
-  this.binds = options.binds || null;
-  this.throwError = options.throwError || null;
-  this.func = function () {
+  self.name = name;
+  self.options = options;
+  self.called = false;
+  self.calledWait = false;
+  self.args = null;
+  self.self = null;
+  self.argList = [];
+  self.selfList = [];
+  self.writes = options.writes || false;
+  self.returns = options.returns || null;
+  self.applies = options.applies || null;
+  self.binds = options.binds || null;
+  self.throwError = self.throwError || null;
+  self.func = function () {
     self.called = true;
     self.calledWait = true;
     self.args = doctest._argsToArray(arguments);
@@ -837,72 +842,74 @@ doctest.Spy = function (name, options, extraOptions) {
     }
     return self.returns;
   };
-  this.func.toString = function () {
+  self.func.toString = function () {
     return "Spy('" + self.name + "').func";
   };
+
+  // Method definitions:
+  self.formatCall = function () {
+    var s = '';
+    if (self.self !== window && self.self !== self) {
+      s += doctest.repr(self.self) + '.';
+    }
+    s += self.name;
+    if (self.args === null) {
+      return s + ':never called';
+    }
+    s += '(';
+    for (var i=0; i<self.args.length; i++) {
+      if (i) {
+        s += ', ';
+      }
+      s += doctest.repr(self.args[i], true);
+    }
+    s += ')';
+    return s;
+  };
+
+  self.method = function (name, options, extraOptions) {
+    var desc = self.name + '.' + name;
+    var newSpy = Spy(desc, options, extraOptions);
+    self[name] = self.func[name] = newSpy.func;
+    return newSpy;
+  };
+
+  self.methods = function (props) {
+    for (var i in props) {
+      if (props[i] === props.prototype[i]) {
+        continue;
+      }
+      self.method(i, props[i]);
+    }
+    return self;
+  };
+
+  self.wait = function (timeout) {
+    var func = function () {
+      var value = self.calledWait;
+      if (value) {
+        self.calledWait = false;
+      }
+      return value;
+    };
+    func.repr = function () {
+      return 'called:'+repr(self);
+    };
+    doctest.wait(func, timeout);
+  };
+
+  self.repr = function () {
+    return "Spy('" + self.name + "')";
+  };
+
   if (options.methods) {
-    this.methods(options.methods);
+    self.methods(options.methods);
   }
   doctest.spies[name] = this;
   if (options.wait) {
-    this.wait();
+    self.wait();
   }
-};
-
-doctest.Spy.prototype.formatCall = function () {
-  var s = '';
-  if (this.self !== window && this.self !== this) {
-    s += doctest.repr(this.self) + '.';
-  }
-  s += this.name;
-  if (this.args === null) {
-    return s + ':never called';
-  }
-  s += '(';
-  for (var i=0; i<this.args.length; i++) {
-    if (i) {
-      s += ', ';
-    }
-    s += doctest.repr(this.args[i], true);
-  }
-  s += ')';
-  return s;
-};
-
-doctest.Spy.prototype.method = function (name, options) {
-  var desc = this.name + '.' + name;
-  var newSpy = new Spy(desc, options);
-  this.func[name] = newSpy.func;
-  return newSpy;
-};
-
-doctest.Spy.prototype.methods = function (props) {
-  for (var i in props) {
-    if (props[i] === props.prototype[i]) {
-      continue;
-    }
-    this.method(i, props[i]);
-  }
-  return this;
-};
-
-doctest.Spy.prototype.wait = function (timeout) {
-  var self = this;
-  var func = function () {
-    var value = self.calledWait;
-    if (value) {
-      self.calledWait = false;
-    }
-    return value;
-  };
-  func.repr = function () {
-    return 'called:'+repr(self);
-  };
-  doctest.wait(func, timeout);
-};
-
-doctest.Spy.prototype.repr = function () {
-  return "Spy('" + this.name + "')";
+  return self;
 };
 
 doctest._argsToArray = function (args) {
