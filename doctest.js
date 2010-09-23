@@ -805,6 +805,7 @@ doctest.Spy = function (name, options, extraOptions) {
   this.name = name;
   this.options = options;
   this.called = false;
+  this.calledWait = false;
   this.args = null;
   this.self = null;
   this.argList = [];
@@ -816,6 +817,7 @@ doctest.Spy = function (name, options, extraOptions) {
   this.throwError = options.throwError || null;
   this.func = function () {
     self.called = true;
+    self.calledWait = true;
     self.args = doctest._argsToArray(arguments);
     self.self = this;
     self.argList.push(self.args);
@@ -884,7 +886,11 @@ doctest.Spy.prototype.methods = function (props) {
 doctest.Spy.prototype.wait = function (timeout) {
   var self = this;
   var func = function () {
-    return self.called;
+    var value = self.calledWait;
+    if (value) {
+      self.calledWait = false;
+    }
+    return value;
   };
   func.repr = function () {
     return 'called:'+repr(self);
