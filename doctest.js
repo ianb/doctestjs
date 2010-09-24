@@ -172,7 +172,7 @@ doctest.Example.prototype.createSpan = function () {
     exampleSpan.appendChild(promptSpan);
     var lineSpan = document.createElement('span');
     lineSpan.className = 'doctest-example-code-line';
-    lineSpan.appendChild(document.createTextNode(exampleLines[i]));
+    lineSpan.appendChild(document.createTextNode(doctest.rstrip(exampleLines[i])));
     exampleSpan.appendChild(lineSpan);
     exampleSpan.appendChild(document.createTextNode('\n'));
   }
@@ -420,7 +420,7 @@ doctest.JSRunner.prototype.checkResult = function (got, expected) {
   }
   expected = RegExp.escape(expected);
   // Note: .* doesn't match newlines, [^] doesn't work on IE
-  expected = '^' + expected.replace(/\\\.\\\.\\\./g, "[^\\r\\n]*") + '$';
+  expected = '^' + expected.replace(/\\\.\\\.\\\./g, "(?:.|[\\r\\n])*") + '$';
   expected = expected.replace(/\n/, '\\n');
   var re = new RegExp(expected);
   return got.search(re) != -1;
@@ -706,7 +706,7 @@ if (typeof repr == 'undefined') {
 }
 
 if (typeof log == 'undefined') {
-    
+
     if (typeof window.console != 'undefined'
         && typeof window.console.log != 'undefined')
     {
