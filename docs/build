@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -e
+
+cd "$(dirname $BASH_SOURCE)"
+
+rm -rf _build
+mkdir _build
+echo -n "Building..."
+cp -r *.html *.css js/ _build
+echo "done."
+echo "Pushing..."
+ghp-import -p -m "auto update" _build
