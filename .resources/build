@@ -4,10 +4,15 @@ set -e
 
 cd "$(dirname $BASH_SOURCE)"
 
+echo "Updating files with template..."
+python retemplate.py ../license.html ../index.html ../examples.html
+
 rm -rf _build
 mkdir _build
-echo -n "Building..."
-cp -r *.html *.css js/ _build
+mkdir _build/.resources
+echo -n "Copying/staging..."
+cp ../*.html ../*.css ../*.js _build/
+cp *.js *.css _build/.resources/
 echo "done."
 echo "Pushing..."
-ghp-import -p -m "auto update" _build
+#ghp-import -p -m "auto update" _build
