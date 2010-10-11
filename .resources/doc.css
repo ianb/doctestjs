@@ -8,7 +8,7 @@ code {
   color: #006;
 }
 
-h2, h3, h4, h5, h6 {
+h3, h4, h5, h6 {
   border-bottom: 2px solid #000;
 }
 
@@ -37,4 +37,27 @@ div#contents ul {
 /* I don't know why I need this: */
 div, p {
   margin-bottom: 1em;
+}
+
+.download {
+  float: right;
+  padding-right: 100px;
+}
+
+h1.title {
+  font-size: 3.8em;
+  margin-bottom: 3px;
+}
+
+h1.title a {
+  color: #000;
+  text-decoration: none;
+}
+
+h1.title a:hover {
+  text-decoration: underline;
+}
+
+h1.title .small {
+  font-size: 0.4em;
 }

@@ -1,10 +1,10 @@
 <html>
 <head>
 <title>Doctest.js: unit testing for Javascript made simple</title>
-<script type="text/javascript" src="../doctest.js"></script>
-<script type="text/javascript" src="js/toc.js"></script>
-<link rel="stylesheet" type="text/css" href="doc.css" />
-<link rel="stylesheet" type="text/css" href="../doctest.css" />
+<script type="text/javascript" src="doctest.js"></script>
+<script type="text/javascript" src=".resources/toc.js"></script>
+<link rel="stylesheet" type="text/css" href=".resources/doc.css" />
+<link rel="stylesheet" type="text/css" href="doctest.css" />
 
 </head>
 
@@ -21,17 +21,13 @@
         <img border="0" width="90" src="http://github.com/images/modules/download/tar.png"></a>
     </div>
 
-    <h1><a href="http://github.com/ianb/doctestjs">doctest.js</a>
-      <span class="small">by <a href="http://github.com/ianb">Ian Bicking</a></span></h1>
-
-    <div class="description">
-      Javascript testing framework inspired by Python's doctest
-    </div>
+    <h1 class="title"><a href="http://github.com/ianb/doctestjs">doctest.js</a>
+      <span class="small">by <a href="http://blog.ianbicking.org">Ian Bicking</a></span></h1>
 
     <div>
 <!-- /HEADER -->
 
-<h1>Doctest/JS: unit testing for Javascript made simple</h1>
+<h2>Doctest/JS: unit testing for Javascript made simple</h2>
 
 <p>
 Author: Ian Bicking
@@ -47,7 +43,7 @@ Author: Ian Bicking
   </tr>
 </table>
 
-<h2>License &amp; Download</h2>
+<h3>License &amp; Download</h3>
 
 <p> This library is licensed under the <a href="license.txt">GPL</a>.
 You can download it from the git repository at <a
@@ -63,7 +59,7 @@ github.com, and then submitting a pull request.  If you are using
 doctest.js, or have written about it, consider noting this on <a
 href="http://github.com/ianb/doctestjs/wiki">the wiki</a>.</p>
 
-<h2>Introduction</h2>
+<h3>Introduction</h3>
 
 <p> Doctest/JS is a port of a widely used testing module <a
 href="http://python.org/doc/current/lib/module-doctest.html"><code>doctest</code></a>
@@ -182,7 +178,7 @@ want a comment in your test, do:
   <pre>$ // look ma, nothing's executed!</pre>
 </div>
 
-<h2>Exceptions and Logging</h2>
+<h3>Exceptions and Logging</h3>
 
 <div class="test"> It's encouraged that you test exception cases in
 your code.  You do this like:
@@ -207,7 +203,7 @@ href="https://addons.mozilla.org/en-US/firefox/addon/1843">Firebug</a>
 or use Chrome's developer console, the traceback will be in the
 console.</div>
 
-<h2>Test Page Structure</h2>
+<h3>Test Page Structure</h3>
 
 <p>While there are ways to test specific things using doctest, writing
 the HTML to hook up the runner gets tedious quickly.  The easiest way
@@ -226,7 +222,7 @@ Specifically you can include other HTML, manipulate it, see the
 result, etc.  Testing DOM operations is simple enough as a
 result.</div>
 
-<h2>Asynchronous Calls and delays</h2>
+<h3>Asynchronous Calls and delays</h3>
 
 <p> Not everything can be tested with call-result, specifically things
 that require callbacks and asynchronous activity.  Some DOM updates
@@ -285,7 +281,7 @@ considered a failure.  You can pass a second argument with a timeout,
 or set <code>doctest.defaultTimeout</code> to change the value of that
 timeout.</p>
 
-<h2>Spy/Mock</h2>
+<h3>Spy/Mock</h3>
 
 <p>Also included is a simple mock object called <code>Spy</code>.
 This object can be called, and you can check if it is called and how.</p>
@@ -346,7 +342,7 @@ immediately after the wait.</p>
 <div>If you wish to be brief about it, you can do:
 
 <pre>
-$ funcWithCallback(Spy('test')); spies.test.wait();
+$ funcWithCallback(Spy('test')); Spy('test').wait();
 $ // or:
 $ funcWithCallback(Spy('test', {wait: true}));
 </pre>
@@ -390,7 +386,7 @@ $ funcWithCallback(Spy('test', {wait: true}));
     assigned to an attribute of the parent spy object and with an
     appropriate name.  So <code>Spy('foo').method('bar')</code> will
     give you a spy that is named <code>foo.bar</code>, and is
-    available as <code>spies.foo.bar</code>.</dd>
+    available as <code>Spy('foo.bar')</code>.</dd>
 
     <dt><code>.methods(properties)</code></dt>
     <dd>This takes a bunch of methods, with options for values (or
@@ -402,7 +398,7 @@ $ funcWithCallback(Spy('test', {wait: true}));
   </dl>
 </div>
 
-<h2>To Do</h2>
+<h3>To Do</h3>
 
 <ol>
   <li>Detail should be displayed (but not matched for) when there is
@@ -431,11 +427,11 @@ $ funcWithCallback(Spy('test', {wait: true}));
 
 </ol>
 
-<h2 href="examples.html">Examples</h2>
+<h3 href="examples.html">Examples</h3>
 
 <!-- FOOTER -->    </div>
 
-    <h2>Download</h2>
+    <h3>Download</h3>
     <p>
       You can download this project in either
       <a href="http://github.com/ianb/doctestjs/zipball/master">zip</a> or
