@@ -611,6 +611,55 @@ doctest.repr = function (o) {
     return ostring;
 };
 
+doctest.xmlRepr = function (doc, indent) {
+  var i;
+  if (doc.nodeType == doc.DOCUMENT_NODE) {
+    return doctest.xmlRepr(doc.childNodes[0], indent);
+  }
+  indent = indent || '';
+  var s = indent + '<' + doc.tagName;
+  var attrs = [];
+  if (doc.attributes && doc.attributes.length) {
+    for (i=0; i<doc.attributes.length; i++) {
+      attrs.push(doc.attributes[i].nodeName);
+    }
+    attrs.sort();
+    for (i=0; i<attrs.length; i++) {
+      s += ' ' + attrs[i] + '="';
+      var value = doc.getAttribute(attrs[i]);
+      value = value.replace('&', '&amp;');
+      value = value.replace('"', '&quot;');
+      s += value;
+      s += '"';
+    }
+  }
+  if (! doc.childNodes.length) {
+    s += ' />';
+    return s;
+  } else {
+    s += '>';
+  }
+  var hasNewline = false;
+  for (i=0; i<doc.childNodes.length; i++) {
+    var el = doc.childNodes[i];
+    if (el.nodeType == doc.TEXT_NODE) {
+      s += doctest.strip(el.textContent);
+    } else {
+      if (! hasNewline) {
+        s += '\n';
+        hasNewline = true;
+      }
+      s += doctest.xmlRepr(el, indent + '  ');
+      s += '\n';
+    }
+  }
+  if (hasNewline) {
+    s += indent;
+  }
+  s += '</' + doc.tagName + '>';
+  return s;
+};
+
 doctest.repr.registry = [
     [function (o) {
          return typeof o == 'string';},
@@ -628,6 +677,10 @@ doctest.repr.registry = [
      function (o) {
          return o + "";
      }],
+    [function (o) {
+          return (typeof o == 'object' && o.xmlVersion);
+     },
+     doctest.xmlRepr],
     [function (o) {
          var typ = typeof o;
          if ((typ != 'object' && ! (type == 'function' && typeof o.item == 'function')) ||
@@ -911,7 +964,7 @@ doctest.Spy = function (name, options, extraOptions) {
   if (options.methods) {
     self.methods(options.methods);
   }
-  doctest.spies[name] = this;
+  doctest.spies[name] = self;
   if (options.wait) {
     self.wait();
   }
