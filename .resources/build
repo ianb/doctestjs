@@ -14,5 +14,8 @@ echo -n "Copying/staging..."
 cp ../*.html ../*.css ../*.js _build/
 cp *.js *.css _build/.resources/
 echo "done."
-echo "Pushing..."
-ghp-import -p -m "auto update" _build
+
+if [ "$1" != "-n" ] ; then
+    echo "Pushing..."
+    ghp-import -p -m "auto update" _build
+fi
