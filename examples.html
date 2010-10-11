@@ -50,7 +50,7 @@ alt="Fork me on GitHub" /></a>
   the Javascript wrappers around those APIs.
 </div>
 
-<div>
+<div class="test">
   In this example we'll access the <a
   href="http://www.geonames.org/export/web-services.html">Geonames
   API</a>.  First we'll want some routines to help us later on.  You
@@ -116,6 +116,32 @@ $ function query(endpoint, q) {
 <pre class="doctest">
 $ query('postalCodeSearchJSON', {postalcode: 9011, maxRows: 5});
 {postalCodes: [{...}]}
+</pre>
+
+</div>
+
+<h3>Web Service/XML</h3>
+
+<div class="test">
+  What we do for JSON, we can also do for XML; in this case
+  it's just fetching a static XML Atom document.
+
+<pre class="doctest">
+$ $.ajax({
+>   url: './.resources/example.xml',
+>   dataType: 'xml',
+>   success: function (doc) {
+>     gdoc = doc;
+>     writeln(repr(doc));
+>   },
+>   error: Spy('error')
+> });
+$ wait(0.5);
+&lt;feed xmlns="http://www.w3.org/2005/Atom">
+  &lt;title>Example Feed&lt;/title>
+  ...
+&lt;/feed>
+
 </pre>
 
 </div>
