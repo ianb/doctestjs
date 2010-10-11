@@ -458,7 +458,7 @@ doctest.OutputCapturer.prototype.stopCapture = function () {
 };
 
 doctest.OutputCapturer.prototype.write = function (text) {
-  doctest._output += text;
+  this.output += text;
 };
 
 // Used to create unique IDs:
@@ -713,7 +713,7 @@ if (typeof log == 'undefined') {
         if (typeof console.log.apply === 'function') {
             log = function() {
                 console.log.apply(console, arguments);
-            }
+            };
         } else {
             log = console.log;
         }
@@ -928,7 +928,7 @@ doctest._argsToArray = function (args) {
 
 Spy = doctest.Spy;
 
-spies = doctest.spies = {};
+doctest.spies = {};
 
 doctest.defaultTimeout = 2000;
 
@@ -939,6 +939,8 @@ var docTestOnLoad = function () {
   if (/\bautodoctest\b/.exec(document.body.className)) {
     doctest.autoSetup();
     auto = true;
+  } else {
+    logDebug('No autodoctest class on <body>');
   }
   var loc = window.location.search.substring(1);
   if (auto || (/doctestRun/).exec(loc)) {
