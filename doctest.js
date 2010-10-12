@@ -842,9 +842,10 @@ doctest.autoSetup = function (parent) {
   if (! reloader) {
     reloader = document.createElement('button');
     reloader.setAttribute('type', 'button');
+    reloader.setAttribute('id', 'doctest-testall');
     reloader.innerHTML = 'test all';
     reloader.onclick = function () {
-      location.hash = '';
+      location.hash = '#doctest-testall';
       location.reload();
     };
     output.parentNode.insertBefore(reloader, output);
@@ -869,7 +870,7 @@ doctest.Spy = function (name, options, extraOptions) {
     doctest.extendDefault(options, extraOptions);
   }
   doctest.extendDefault(options, doctest.defaultSpyOptions);
-  self.name = name;
+  self._name = name;
   self.options = options;
   self.called = false;
   self.calledWait = false;
@@ -902,7 +903,7 @@ doctest.Spy = function (name, options, extraOptions) {
     return self.returns;
   };
   self.func.toString = function () {
-    return "Spy('" + self.name + "').func";
+    return "Spy('" + self._name + "').func";
   };
 
   // Method definitions:
@@ -911,7 +912,7 @@ doctest.Spy = function (name, options, extraOptions) {
     if (self.self !== window && self.self !== self) {
       s += doctest.repr(self.self) + '.';
     }
-    s += self.name;
+    s += self._name;
     if (self.args === null) {
       return s + ':never called';
     }
@@ -927,7 +928,7 @@ doctest.Spy = function (name, options, extraOptions) {
   };
 
   self.method = function (name, options, extraOptions) {
-    var desc = self.name + '.' + name;
+    var desc = self._name + '.' + name;
     var newSpy = Spy(desc, options, extraOptions);
     self[name] = self.func[name] = newSpy.func;
     return newSpy;
@@ -958,7 +959,7 @@ doctest.Spy = function (name, options, extraOptions) {
   };
 
   self.repr = function () {
-    return "Spy('" + self.name + "')";
+    return "Spy('" + self._name + "')";
   };
 
   if (options.methods) {

@@ -41,14 +41,7 @@ Author: Ian Bicking
 &lt;<a href="mailto:ianb@colorstudy.com">ianb@colorstudy.com</a>&gt;
 </p>
 
-<!-- tables, so retro! -->
-<table style="width: 100%">
-  <tr>
-    <td style="width: 50%; vertical-align: top"><div id="contents"></div></td>
-    <td>Tests:<br />
-      <pre id="doctestOutput"></pre></td>
-  </tr>
-</table>
+<div id="contents"></div>
 
 <h3>License &amp; Download</h3>
 
@@ -80,11 +73,24 @@ statement is an implicit <code>assertEqual</code>.  In fact there
 isn't really a need for <code>assert*</code> helpers because it is
 implicit in all your tests. </p>
 
+
 <div> An example is in order.  These examples are all self-complete,
 but typically you would include the <code>.js</code> file you were
 testing, and wouldn't define (many) functions inline in the code.  But
 don't be shy!  It will frequently make your tests more compact and
 thorough to define helper functions.</div>
+
+<div> The runner is embedded directly in the page.  Here's the runner
+for all the tests on this page (you'll notice some failures, which are
+deliberate):
+
+<div class="doctestOutput"></div>
+
+Individual tests also have their own runner (you'll notice the boxes
+with the <button type="button"
+onclick="this.innerHTML='this isn\'t a real button, silly'">test</button>
+buttons), so you can debug just one test.
+</div>
 
 <div class="test">Here's an example, where we will define and test a
 <code>factorial</code> function.  Note I've written the test to get a
@@ -195,8 +201,8 @@ $ function countTag(parent, tag) {
 >     return parent.getElementsByTagName(tag).length;
 > }
 ...
-$ countTag(document.getElementById('dt-exception'), 'pre');
-0
+$ countTag(document.getElementById('container'), 'pre');
+10
 $ countTag({}, 'pre');
 Error: parent.getElementsByTagName is not a function
 </pre>
@@ -410,12 +416,6 @@ $ funcWithCallback(Spy('test', {wait: true}));
 <ol>
   <li>Detail should be displayed (but not matched for) when there is
   an exception</li>
-
-  <li>Automatic creation of an output area for the report, if one
-  doesn't exist already.</li>
-
-  <li>Easier setup of per-test buttons, etc.  Maybe automatic
-  setup.</li>
 
   <li>Implement CommonJS loading/module. </li>
 
