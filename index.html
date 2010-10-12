@@ -273,11 +273,9 @@ And another example of a callback:
 
 <pre class="doctest">
 $ finished = false;
-...
 $ function doSomethingSlowly(callback) {
 >   setTimeout(function () {finished = true; callback();}, 1);
 > }
-...
 $ doSomethingSlowly(function () {
 >   writeln('Something was done');
 > });

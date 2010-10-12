@@ -240,7 +240,7 @@ doctest.Reporter.prototype.reportSuccess = function (example, output) {
     }
   }
   this.success += 1;
-  if (doctest.strip(example.output) == '...') {
+  if (example.output.indexOf('...') >= 0 && output) {
     example.markExample('doctest-success', 'Output:\n' + output);
   } else {
     example.markExample('doctest-success');
