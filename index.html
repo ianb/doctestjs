@@ -415,11 +415,8 @@ $ funcWithCallback(Spy('test', {wait: true}));
   <li>Detail should be displayed (but not matched for) when there is
   an exception</li>
 
-  <li>Implement CommonJS loading/module. </li>
-
-  <li>Maybe use <code>>>></code> for the prompt, similar to the
-  console.  Or make it more pluggable?  Allow actual HTML to break up
-  the input and output? (Would anyone ever want that?) </li>
+  <li>Implement CommonJS loading/module.  Not sure how/if this works
+  in a browser. </li>
 
   <li>A clear, documented way to plug in different output comparison
   tools.  Pure string literal comparison is just one not-so-great
@@ -429,6 +426,20 @@ $ funcWithCallback(Spy('test', {wait: true}));
   <li>The parser doesn't check for many errors, e.g., you can
   interleave "output" with expressions, depending on whether you use
   the <code>></code> prompt.</li>
+
+  <li>Maybe instead of <code>></code> and <code>$</code>, it should
+  use <code>>>></code> for the prompty, and <code>==></code> to
+  indicate that "output" is starting, with no continuation lines.
+  Also maybe a line starting with <code>//</code> should be ignored
+  (as a comment on the tests themselves, instead of needing <code>$
+  //</code>).</li>
+
+  <li>Figure out how this can work without a browser and HTML being
+  involved.  Or... with env.js and a custom reporter?  Or simply a
+  text-based parser? </li>
+
+  <li>Experiment with driving an iframe using doctests, for site
+  functional/integration testing.</li>
 
 </ol>
 
