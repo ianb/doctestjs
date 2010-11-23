@@ -116,6 +116,18 @@ bar
 </pre>
 </div>
 
+<div class="test">
+Also if you print out a really long object you'll get a multi-line
+representation:
+
+<pre class="doctest">
+$ obj = {key1: "one string", key2: "another string",
+>        a_key: "something else", something: "more strings",
+>        and_then: "one last string"};
+$ writeln(repr(obj));
+</pre>
+</div>
+
 <div>There's not much in the HTML that you don't see right there.  If
 you did <i>view source</i> you'd see something like this:
 

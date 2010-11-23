@@ -569,7 +569,11 @@ doctest.reload = function (button/*optional*/) {
 };
 
 /* Taken from MochiKit, with an addition to print objects */
-doctest.repr = function (o) {
+doctest.repr = function (o, indent, maxLen) {
+    indent = indent || '';
+    if (maxLen === undefined) {
+      maxLen = 120;
+    }
     if (typeof o == 'undefined') {
         return 'undefined';
     } else if (o === null) {
@@ -577,14 +581,14 @@ doctest.repr = function (o) {
     }
     try {
         if (typeof(o.__repr__) == 'function') {
-            return o.__repr__();
+            return o.__repr__(indent, maxLen);
         } else if (typeof(o.repr) == 'function' && o.repr != arguments.callee) {
-            return o.repr();
+            return o.repr(indent, maxLen);
         }
         for (var i=0; i<doctest.repr.registry.length; i++) {
             var item = doctest.repr.registry[i];
             if (item[0](o)) {
-                return item[1](o);
+                return item[1](o, indent, maxLen);
             }
         }
     } catch (e) {
@@ -596,23 +600,8 @@ doctest.repr = function (o) {
     }
     try {
         var ostring = (o + "");
-        if (ostring == '[object Object]') {
-          ostring = '{';
-          var keys = [];
-          for (var i in o) {
-            if (typeof o.prototype == 'undefined'
-                || o[i] !== o.prototype[i]) {
-              keys.push(i);
-            }
-          }
-          keys.sort();
-          for (i=0; i<keys.length; i++) {
-            if (ostring != '{') {
-              ostring += ', ';
-            }
-            ostring += keys[i] + ': ' + doctest.repr(o[keys[i]]);
-          }
-          ostring += '}';
+        if (ostring == '[object Object]' || ostring == '[object]') {
+          ostring = doctest.objRepr(o, indent, maxLen);
         }
     } catch (e) {
         return "[" + typeof(o) + "]";
@@ -625,6 +614,49 @@ doctest.repr = function (o) {
         }
     }
     return ostring;
+};
+
+doctest.objRepr = function (obj, indent, maxLen) {
+  var ostring = '{';
+  var keys = doctest._sortedKeys(obj);
+  for (var i=0; i<keys.length; i++) {
+    if (ostring != '{') {
+      ostring += ', ';
+    }
+    ostring += keys[i] + ': ' + doctest.repr(obj[keys[i]], indent, maxLen);
+  }
+  ostring += '}';
+  if (ostring.length > (maxLen - indent.length)) {
+    return doctest.multilineObjRepr(obj, indent, maxLen);
+  }
+  return ostring;
+};
+
+doctest._sortedKeys = function (obj) {
+  var keys = [];
+  for (var i in obj) {
+    if (typeof obj.prototype == 'undefined'
+        || obj[i] !== obj.prototype[i]) {
+      keys.push(i);
+    }
+  }
+  keys.sort();
+  return keys;
+};
+
+doctest.multilineObjRepr = function (obj, indent, maxLen) {
+  var keys = doctest._sortedKeys(obj);
+  var ostring = '{\n';
+  for (var i=0; i<keys.length; i++) {
+    ostring += indent + '  ' + keys[i] + ': ';
+    ostring += doctest.repr(obj[keys[i]], indent+'  ', maxLen);
+    if (i != keys.length - 1) {
+      ostring += ',';
+    }
+    ostring += '\n';
+  }
+  ostring += '}';
+  return ostring;
 };
 
 doctest.xmlRepr = function (doc, indent) {
