@@ -365,6 +365,38 @@ doctest.JSRunner.prototype.runParsed = function (parsed, index, finishedCallback
   }
 };
 
+doctest.logTraceback = function (e, skipFrames) {
+  skipFrames = skipFrames || 0;
+  if (typeof e == 'undefined' || !e) {
+    var caughtErr = null;
+    try {
+      (null).foo;
+    } catch (caughtErr) {
+      e = caughtErr;
+    }
+    skipFrames++;
+  }
+  if (e.stack) {
+    var stack = e.stack.split('\n');
+    for (var i=skipFrames; i<stack.length; i++) {
+      if (stack[i] == '@:0' || ! stack[i]) {
+        continue;
+      }
+      var parts = stack[i].split('@');
+      var context = parts[0];
+      parts = parts[1].split(':');
+      var filename = parts[parts.length-2].split('/');
+      filename = filename[filename.length-1];
+      var lineno = parts[parts.length-1];
+      context = context.replace('\\n', '\n');
+      if (context != '' && filename != 'doctest.js') {
+        logDebug('  ' + context + ' -> ' + filename + ':' + lineno);
+      }
+    }
+  }
+};
+
+
 doctest.JSRunner.prototype.run = function (example) {
   this.capturer = new doctest.OutputCapturer();
   this.capturer.capture();
@@ -375,23 +407,7 @@ doctest.JSRunner.prototype.run = function (example) {
     var result = null;
     logDebug('Error in expression: ' + example.example);
     logDebug('Traceback for error', e);
-    if (e.stack) {
-      var stack = e.stack.split('\n');
-      for (var i=0; i<stack.length; i++) {
-        if (stack[i] == '@:0' || ! stack[i]) {
-          continue;
-        }
-        var parts = stack[i].split('@');
-        var context = parts[0];
-        parts = parts[1].split(':');
-        var filename = parts[parts.length-2].split('/');
-        filename = filename[filename.length-1];
-        var lineno = parts[parts.length-1];
-        if (context != '' && filename != 'jsdoctest.js') {
-          logDebug('  ' + context + ' -> '+filename+':'+lineno);
-        }
-      }
-    }
+    doctest.logTraceback(e);
   }
   if (typeof result != 'undefined'
       && result !== null
