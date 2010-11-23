@@ -820,7 +820,7 @@ doctest.autoSetup = function (parent) {
     el.className = 'test-id';
     var anchor = document.createElement('a');
     anchor.setAttribute('href', '#' + tags[i].getAttribute('id'));
-    anchor.appendChild(document.createTextNode(tagId));
+    anchor.appendChild(document.createTextNode(tags[i].getAttribute('id')));
     var button = document.createElement('button');
     button.innerHTML = 'test';
     button.setAttribute('type', 'button');
@@ -1018,8 +1018,10 @@ var docTestOnLoad = function () {
     // FIXME: we need to put the output near the specific test being tested:
     if (location.hash) {
       var el = document.getElementById(location.hash.substr(1));
-      if (/\btest\b/.exec(el.className)) {
-        elements = doctest.getElementsByTagAndClassName('pre', 'doctest', el);
+      if (el) {
+        if (/\btest\b/.exec(el.className)) {
+          elements = doctest.getElementsByTagAndClassName('pre', 'doctest', el);
+        }
       }
     }
     doctest(0, elements);
