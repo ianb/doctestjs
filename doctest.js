@@ -616,6 +616,18 @@ doctest.repr = function (o, indent, maxLen) {
     return ostring;
 };
 
+doctest._sortedKeys = function (obj) {
+  var keys = [];
+  for (var i in obj) {
+    if (typeof obj.prototype == 'undefined'
+        || obj[i] !== obj.prototype[i]) {
+      keys.push(i);
+    }
+  }
+  keys.sort();
+  return keys;
+};
+
 doctest.objRepr = function (obj, indent, maxLen) {
   var ostring = '{';
   var keys = doctest._sortedKeys(obj);
@@ -632,18 +644,6 @@ doctest.objRepr = function (obj, indent, maxLen) {
   return ostring;
 };
 
-doctest._sortedKeys = function (obj) {
-  var keys = [];
-  for (var i in obj) {
-    if (typeof obj.prototype == 'undefined'
-        || obj[i] !== obj.prototype[i]) {
-      keys.push(i);
-    }
-  }
-  keys.sort();
-  return keys;
-};
-
 doctest.multilineObjRepr = function (obj, indent, maxLen) {
   var keys = doctest._sortedKeys(obj);
   var ostring = '{\n';
@@ -655,8 +655,36 @@ doctest.multilineObjRepr = function (obj, indent, maxLen) {
     }
     ostring += '\n';
   }
-  ostring += '}';
+  ostring += indent + '}';
   return ostring;
+};
+
+doctest.arrayRepr = function (obj, indent, maxLen) {
+  var s = "[";
+  for (var i=0; i<obj.length; i++) {
+    s += doctest.repr(obj[i], indent, maxLen);
+    if (i != obj.length-1) {
+      s += ", ";
+    }
+  }
+  s += "]";
+  if (s.length > (maxLen + indent.length)) {
+    return doctest.multilineArrayRepr(obj, indent, maxLen);
+  }
+  return s;
+};
+
+doctest.multilineArrayRepr = function (obj, indent, maxLen) {
+  var s = "[\n";
+  for (var i=0; i<obj.length; i++) {
+    s += '  ' + doctest.repr(obj[i], indent+'  ', maxLen);
+    if (i != obj.length - 1) {
+      s += ',';
+    }
+    s += '\n';
+  }
+  s += indent + ']';
+  return s;
 };
 
 doctest.xmlRepr = function (doc, indent) {
@@ -739,17 +767,8 @@ doctest.repr.registry = [
          }
          return true;
      },
-     function (o) {
-         var s = "[";
-         for (var i=0; i<o.length; i++) {
-             s += doctest.repr(o[i]);
-             if (i != o.length-1) {
-                 s += ", ";
-             }
-         }
-         s += "]";
-         return s;
-     }]];
+     doctest.arrayRepr
+     ]];
 
 doctest.getElementsByTagAndClassName = function (tagName, className, parent/*optional*/) {
     parent = parent || document;
