@@ -240,7 +240,9 @@ doctest.Reporter.prototype.reportSuccess = function (example, output) {
     }
   }
   this.success += 1;
-  if (example.output.indexOf('...') >= 0 && output) {
+  if ((example.output.indexOf('...') >= 0 
+       || example.output.indexOf('?') >= 0) 
+      && output) {
     example.markExample('doctest-success', 'Output:\n' + output);
   } else {
     example.markExample('doctest-success');
@@ -277,7 +279,7 @@ doctest.Reporter.prototype.finish = function () {
 };
 
 doctest.Reporter.prototype.writeln = function (text) {
-  this.write(text+'\n');
+  this.write(text + '\n');
 };
 
 doctest.Reporter.prototype.write = function (text) {
@@ -331,7 +333,7 @@ doctest.JSRunner.prototype.runParsed = function (parsed, index, finishedCallback
   if (doctest._waitCond !== null) {
     if (typeof doctest._waitCond == 'number') {
       var condition = null;
-      var time = 0;
+      var time = doctest._waitCond;
       var maxTime = null;
     } else {
       var condition = doctest._waitCond;
@@ -365,8 +367,9 @@ doctest.JSRunner.prototype.runParsed = function (parsed, index, finishedCallback
   }
 };
 
-doctest.logTraceback = function (e, skipFrames) {
+doctest.formatTraceback = function (e, skipFrames) {
   skipFrames = skipFrames || 0;
+  var lines = [];
   if (typeof e == 'undefined' || !e) {
     var caughtErr = null;
     try {
@@ -390,12 +393,26 @@ doctest.logTraceback = function (e, skipFrames) {
       var lineno = parts[parts.length-1];
       context = context.replace('\\n', '\n');
       if (context != '' && filename != 'doctest.js') {
-        logDebug('  ' + context + ' -> ' + filename + ':' + lineno);
+        lines.push('  ' + context + ' -> ' + filename + ':' + lineno);
       }
     }
   }
+  if (lines.length) {
+    return lines;
+  } else {
+    return null;
+  }
 };
 
+doctest.logTraceback = function (e, skipFrames) {
+  var tracebackLines = doctest.formatTraceback(e, skipFrames);
+  if (! tracebackLines) {
+    return;
+  }
+  for (var i=0; i<tracebackLines.length; i++) {
+    logDebug(tracebackLines[i]);
+  }
+};
 
 doctest.JSRunner.prototype.run = function (example) {
   this.capturer = new doctest.OutputCapturer();
@@ -403,11 +420,16 @@ doctest.JSRunner.prototype.run = function (example) {
   try {
     var result = window.eval(example.example);
   } catch (e) {
+    var tracebackLines = doctest.formatTraceback(e);
     writeln('Error: ' + (e.message || e));
     var result = null;
-    logDebug('Error in expression: ' + example.example);
+    logWarn('Error in expression: ' + example.example);
     logDebug('Traceback for error', e);
-    doctest.logTraceback(e);
+    if (tracebackLines) {
+      for (var i=0; i<tracebackLines.length; i++) {
+        logDebug(tracebackLines[i]);
+      }
+    }
   }
   if (typeof result != 'undefined'
       && result !== null
@@ -437,6 +459,7 @@ doctest.JSRunner.prototype.checkResult = function (got, expected) {
   expected = RegExp.escape(expected);
   // Note: .* doesn't match newlines, [^] doesn't work on IE
   expected = '^' + expected.replace(/\\\.\\\.\\\./g, "(?:.|[\\r\\n])*") + '$';
+  expected = expected.replace(/\\\?/g, "[a-zA-Z0-9_.]+");
   expected = expected.replace(/\n/, '\\n');
   var re = new RegExp(expected);
   return got.search(re) != -1;
@@ -474,7 +497,11 @@ doctest.OutputCapturer.prototype.stopCapture = function () {
 };
 
 doctest.OutputCapturer.prototype.write = function (text) {
-  this.output += text;
+  if (typeof text == 'string') {
+    this.output += text;
+  } else {
+    this.output += repr(text);
+  }
 };
 
 // Used to create unique IDs:
@@ -571,54 +598,93 @@ doctest.reload = function (button/*optional*/) {
 /* Taken from MochiKit, with an addition to print objects */
 doctest.repr = function (o, indent, maxLen) {
     indent = indent || '';
-    if (maxLen === undefined) {
-      maxLen = 120;
-    }
-    if (typeof o == 'undefined') {
-        return 'undefined';
-    } else if (o === null) {
-        return "null";
+    if (doctest._reprTracker === null) {
+      var iAmTheTop = true;
+      doctest._reprTracker = [];
+    } else {
+      var iAmTheTop = false;
     }
     try {
-        if (typeof(o.__repr__) == 'function') {
-            return o.__repr__(indent, maxLen);
-        } else if (typeof(o.repr) == 'function' && o.repr != arguments.callee) {
-            return o.repr(indent, maxLen);
-        }
-        for (var i=0; i<doctest.repr.registry.length; i++) {
-            var item = doctest.repr.registry[i];
-            if (item[0](o)) {
-                return item[1](o, indent, maxLen);
-            }
-        }
-    } catch (e) {
-        if (typeof(o.NAME) == 'string' && (
-                o.toString == Function.prototype.toString ||
-                    o.toString == Object.prototype.toString)) {
-            return o.NAME;
-        }
+      if (doctest._reprTrackObj(o)) {
+        return '..recursive..';
+      }
+      if (maxLen === undefined) {
+        maxLen = 120;
+      }
+      if (typeof o == 'undefined') {
+          return 'undefined';
+      } else if (o === null) {
+          return "null";
+      }
+      try {
+          if (typeof(o.__repr__) == 'function') {
+              return o.__repr__(indent, maxLen);
+          } else if (typeof(o.repr) == 'function' && o.repr != arguments.callee) {
+              return o.repr(indent, maxLen);
+          }
+          for (var i=0; i<doctest.repr.registry.length; i++) {
+              var item = doctest.repr.registry[i];
+              if (item[0](o)) {
+                  return item[1](o, indent, maxLen);
+              }
+          }
+      } catch (e) {
+          if (typeof(o.NAME) == 'string' && (
+                  o.toString == Function.prototype.toString ||
+                      o.toString == Object.prototype.toString)) {
+              return o.NAME;
+          }
+      }
+      try {
+          var ostring = (o + "");
+          if (ostring == '[object Object]' || ostring == '[object]') {
+            ostring = doctest.objRepr(o, indent, maxLen);
+          }
+      } catch (e) {
+          return "[" + typeof(o) + "]";
+      }
+      if (typeof(o) == "function") {
+          var ostring = ostring.replace(/^\s+/, "").replace(/\s+/g, " ");
+          var idx = ostring.indexOf("{");
+          if (idx != -1) {
+              ostring = ostring.substr(o, idx) + "{...}";
+          }
+      }
+      return ostring;
+    } finally {
+      if (iAmTheTop) {
+        doctest._reprTracker = null;
+      }
     }
-    try {
-        var ostring = (o + "");
-        if (ostring == '[object Object]' || ostring == '[object]') {
-          ostring = doctest.objRepr(o, indent, maxLen);
-        }
-    } catch (e) {
-        return "[" + typeof(o) + "]";
+};
+
+doctest._reprTracker = null;
+
+doctest._reprTrackObj = function (obj) {
+  if (typeof obj != 'object') {
+    return false;
+  }
+  for (var i=0; i<doctest._reprTracker.length; i++) {
+    if (doctest._reprTracker[i] === obj) {
+      return true;
     }
-    if (typeof(o) == "function") {
-        var ostring = ostring.replace(/^\s+/, "").replace(/\s+/g, " ");
-        var idx = ostring.indexOf("{");
-        if (idx != -1) {
-            ostring = ostring.substr(o, idx) + "{...}";
-        }
-    }
-    return ostring;
+  }
+  doctest._reprTracker.push(obj);
+  return false;
+};
+
+doctest._reprTrackSave = function () {
+  return doctest._reprTracker.length-1;
+};
+
+doctest._reprTrackRestore = function (point) {
+  doctest._reprTracker.splice(point);
 };
 
 doctest._sortedKeys = function (obj) {
   var keys = [];
   for (var i in obj) {
+    // FIXME: should I use hasOwnProperty?
     if (typeof obj.prototype == 'undefined'
         || obj[i] !== obj.prototype[i]) {
       keys.push(i);
@@ -629,6 +695,7 @@ doctest._sortedKeys = function (obj) {
 };
 
 doctest.objRepr = function (obj, indent, maxLen) {
+  var restorer = doctest._reprTrackSave();
   var ostring = '{';
   var keys = doctest._sortedKeys(obj);
   for (var i=0; i<keys.length; i++) {
@@ -639,6 +706,7 @@ doctest.objRepr = function (obj, indent, maxLen) {
   }
   ostring += '}';
   if (ostring.length > (maxLen - indent.length)) {
+    doctest._reprTrackRestore(restorer);
     return doctest.multilineObjRepr(obj, indent, maxLen);
   }
   return ostring;
@@ -660,6 +728,7 @@ doctest.multilineObjRepr = function (obj, indent, maxLen) {
 };
 
 doctest.arrayRepr = function (obj, indent, maxLen) {
+  var restorer = doctest._reprTrackSave();
   var s = "[";
   for (var i=0; i<obj.length; i++) {
     s += doctest.repr(obj[i], indent, maxLen);
@@ -669,6 +738,7 @@ doctest.arrayRepr = function (obj, indent, maxLen) {
   }
   s += "]";
   if (s.length > (maxLen + indent.length)) {
+    doctest._reprTrackRestore(restorer);
     return doctest.multilineArrayRepr(obj, indent, maxLen);
   }
   return s;
@@ -774,6 +844,9 @@ doctest.getElementsByTagAndClassName = function (tagName, className, parent/*opt
     parent = parent || document;
     var els = parent.getElementsByTagName(tagName);
     var result = [];
+    if (typeof className == 'object' && className.length) {
+      className = className.join('|');
+    }
     var re = new RegExp("\\b"+className+"\\b");
     for (var i=0; i<els.length; i++) {
         var el = els[i];
@@ -825,31 +898,38 @@ if (typeof repr == 'undefined') {
     repr = doctest.repr;
 }
 
-if (typeof log == 'undefined') {
-
-    if (typeof window.console != 'undefined'
-        && typeof window.console.log != 'undefined')
-    {
-        if (typeof console.log.apply === 'function') {
-            log = function() {
-                console.log.apply(console, arguments);
-            };
-        } else {
-            log = console.log;
-        }
+doctest._consoleFunc = function (attr) {
+  if (typeof window.console != 'undefined'
+      && typeof window.console[attr] != 'undefined') {
+    if (typeof console[attr].apply === 'function') {
+      result = function() {
+        console[attr].apply(console, arguments);
+      };
     } else {
-        log = function () {
-            // FIXME: do something
-        };
+      result = console[attr];
     }
+  } else {
+    result = function () {
+      // FIXME: do something
+    };
+  }
+  return result;    
+};
+
+if (typeof log == 'undefined') {
+  log = doctest._consoleFunc('log');
 }
 
 if (typeof logDebug == 'undefined') {
-    logDebug = log;
+  logDebug = doctest._consoleFunc('log');
 }
 
 if (typeof logInfo == 'undefined') {
-    logInfo = log;
+  logInfo = doctest._consoleFunc('info');
+}
+
+if (typeof logWarn == 'undefined') {
+  logWarn = doctest._consoleFunc('warn');
 }
 
 doctest.autoSetup = function (parent) {
@@ -923,11 +1003,15 @@ doctest.autoSetup._idCount = 0;
 
 doctest.Spy = function (name, options, extraOptions) {
   if (doctest.spies[name]) {
-    return doctest.spies[name];
+     self = doctest.spies[name];
+     if (! options && ! extraOptions) {
+       return self;
+     }
+  } else {
+    var self = function () {
+      return self.func.apply(this, arguments);
+    };
   }
-  var self = function () {
-    return self.func.apply(this, arguments);
-  };
   name = name || 'spy';
   options = options || {};
   if (typeof options == 'function') {
@@ -949,7 +1033,8 @@ doctest.Spy = function (name, options, extraOptions) {
   self.returns = options.returns || null;
   self.applies = options.applies || null;
   self.binds = options.binds || null;
-  self.throwError = self.throwError || null;
+  self.throwError = options.throwError || null;
+  self.ignoreThis = options.ignoreThis || false;
   self.func = function () {
     self.called = true;
     self.calledWait = true;
@@ -976,7 +1061,7 @@ doctest.Spy = function (name, options, extraOptions) {
   // Method definitions:
   self.formatCall = function () {
     var s = '';
-    if (self.self !== window && self.self !== self) {
+    if ((! self.ignoreThis) && self.self !== window && self.self !== self) {
       s += doctest.repr(self.self) + '.';
     }
     s += self._name;
@@ -1071,7 +1156,11 @@ var docTestOnLoad = function () {
       var el = document.getElementById(location.hash.substr(1));
       if (el) {
         if (/\btest\b/.exec(el.className)) {
-          elements = doctest.getElementsByTagAndClassName('pre', 'doctest', el);
+          testEls = doctest.getElementsByTagAndClassName('pre', 'doctest', el);
+        }
+        var elements = doctest.getElementsByTagAndClassName('pre', ['doctest', 'setup']);
+        for (var i=0; i<testEls.length; i++) {
+          elements.push(testEls[i]);
         }
       }
     }

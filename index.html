@@ -124,7 +124,7 @@ representation:
 $ obj = [{key1: "one string", key2: "another string",
 >         a_key: "something else", something: "more strings",
 >         and_then: "one last string"}, {}];
-$ writeln(repr(obj));
+$ writeln(obj);
 </pre>
 </div>
 
@@ -163,7 +163,9 @@ example <code>factorial(3)</code> returns 6.  Output can also include
 anything that is explicitly written (using
 <code>writeln(value)</code>), and if there's an error then the error
 is also written out (as you can see with
-<code>factorial('foo')</code>, which is an error).</div>
+<code>factorial('foo')</code>, which is an error).  <code>writeln</code>
+will write the repr of objects, except strings which are written literally.
+(<code>repr('"hey"') == "\"hey\""</code>)</div>
 
 <div><b>Output:</b> <i>every</i> Javascript expression or statement
 has a return value, and some of those values are quite tedious (like a
@@ -190,6 +192,13 @@ parts might be volatile -- different on every test run.  You can
 ignore a portion of the test by using <code>...</code> in the output.
 All the matching is strictly textual.  Note even errors can be matched
 this way (maybe unintentionally).</div>
+
+<div><b><code>?</code>:</b> this is like <code>...</code>, but it only
+matches one word (letters, numbers, <code>_</code>, and <code>.</code>).
+This is so you can do something like <code>{attr: ?}</code> and avoid
+matching <code>{attr: value, attr2: value}</code>.  It doesn't match
+quotation marks, so you may need <code>"?"</code> (more usefully though,
+it does match numbers, like a timestamp).</div>
 
 <div><b>Writing:</b> there are two functions to write to the test
 output, <code>write()</code> and <code>writeln()</code> (like
@@ -246,6 +255,13 @@ class="doctest"&gt;</code> to actually write your test in.</div>
 Specifically you can include other HTML, manipulate it, see the
 result, etc.  Testing DOM operations is simple enough as a
 result.</div>
+
+<div>You'll notice you can test just a single section delimited by 
+<code>&lt;div class="test"&gt;</code>.  This is nice for honing in on
+a particular test, but sometimes you'll have code you want to run
+for every test (because it sets up helper functions, mocks something
+out, etc).  If that is the case, use <code>&lt;pre class="doctest setup"&gt;</code>
+and it will always be run.</div>
 
 <h3>Asynchronous Calls and delays</h3>
 
@@ -352,6 +368,13 @@ object in <code>mySpy.self</code>.</p>
   <dd>If true, then after creating it will immediately call
   <code>this.wait();</code>.  You can use this for shortcuts.</dd>
 
+  <dt><code>ignoreThis</code></dt>
+  <dd>If the function is called with a <code>this</code> value that
+  is "interesting" (not <code>window</code> for instance) then it will
+  be printed.  But sometimes that's just distracting, so using 
+  <code>ignoreThis: true</code> the value of <code>this</code> won't be
+  written out.</dd>
+
 </dl>
 
 You may set global defaults for these options with
@@ -452,6 +475,10 @@ $ funcWithCallback(Spy('test', {wait: true}));
 
   <li>Experiment with driving an iframe using doctests, for site
   functional/integration testing.</li>
+
+  <li>Handle the unstable nature of anchor links to specific failures:
+  these should either be stable (link everything upfront?) or
+  have some fallback.</li>
 
 </ol>
 
