@@ -444,11 +444,38 @@ $ funcWithCallback(Spy('test', {wait: true}));
   </dl>
 </div>
 
+<h3>Object Diff</h3>
+
+<div class="test">
+  A helper is included to make a diff of objects.  This can help
+  to view and test state changes.
+
+<pre class="doctest">
+$ oldObject = {a: 10, b: 12};
+$ newObject = {a: 11, c: 3};
+$ doctest.writeDiff(oldObject, newObject)
++c: 3
+-b: 12
+a: 10 -> 11
+</pre>
+
+<p>The output always starts with any added attributes (which show their
+new value), then any deleted values (which show the old value), then
+finally any changed attributes.  Attributes that aren't changed aren't
+shown.</p>
+
+<p>There is also a function <code>doctest.objectEqual</code> if you
+want to test if any attributes have changed.</p>
+</div>
+
 <h3>To Do</h3>
 
 <ol>
   <li>Detail should be displayed (but not matched for) when there is
-  an exception</li>
+  an exception.  Maybe similarly, detail should be shown when output
+  doesn't match (like a line-by-line match to highlight the difference,
+  at least when dealing with multi-line output).  Some of this is in
+  the console, but should be inline. </li>
 
   <li>Implement CommonJS loading/module.  Not sure how/if this works
   in a browser. </li>

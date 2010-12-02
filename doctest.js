@@ -451,8 +451,11 @@ doctest.JSRunner.prototype.finishRun = function(example) {
 };
 
 doctest.JSRunner.prototype.checkResult = function (got, expected) {
-  expected = expected.replace(/[\n\r]*$/, '') + '\n';
-  got = got.replace(/[\n\r]*$/, '') + '\n';
+  // Make sure trailing whitespace doesn't matter:
+  got = got.replace(/ +\n/, '\n');
+  expected = expected.replace(/ +\n/, '\n');
+  got = got.replace(/[ \n\r]*$/, '') + '\n';
+  expected = expected.replace(/[ \n\r]*$/, '') + '\n';
   if (expected == '...\n') {
     return true;
   }
@@ -460,9 +463,63 @@ doctest.JSRunner.prototype.checkResult = function (got, expected) {
   // Note: .* doesn't match newlines, [^] doesn't work on IE
   expected = '^' + expected.replace(/\\\.\\\.\\\./g, "(?:.|[\\r\\n])*") + '$';
   expected = expected.replace(/\\\?/g, "[a-zA-Z0-9_.]+");
-  expected = expected.replace(/\n/, '\\n');
+  expected = expected.replace(/[ \t]+/g, " +");
+  expected = expected.replace(/\n/g, '\\n');
   var re = new RegExp(expected);
-  return got.search(re) != -1;
+  var result = got.search(re) != -1;
+  if (! result) {
+    if (doctest.strip(got).split('\n').length > 1) {
+      // If it's only one line it's not worth showing this
+      var check = this.showCheckDifference(got, expected);
+      logWarn('Mismatch of output (line-by-line comparison follows)');
+      for (var i=0; i<check.length; i++) {
+        logDebug(check[i]);
+      }
+    }
+  }
+  return result;
+};
+
+doctest.JSRunner.prototype.showCheckDifference = function (got, expectedRegex) {
+  if (expectedRegex.charAt(0) != '^') {
+    throw 'Unexpected regex, no leading ^';
+  }
+  if (expectedRegex.charAt(expectedRegex.length-1) != '$') {
+    throw 'Unexpected regex, no trailing $';
+  }
+  expectedRegex = expectedRegex.substr(1, expectedRegex.length-2);
+  // Technically this might not be right, but this is all a heuristic:
+  var expectedLines = expectedRegex.split('\\n');
+  var gotLines = got.split('\n');
+  var result = [];
+  var totalLines = expectedLines.length > gotLines.length ? 
+    expectedLines.length : gotLines.length;
+  function displayExpectedLine(line) {
+    return line;
+    line = line.replace(/\[a-zA-Z0-9_.\]\+/g, '?');
+    line = line.replace(/ \+/g, ' ');
+    line = line.replace(/\(\?:\.\|\[\\r\\n\]\)\*/g, '...');
+    // FIXME: also unescape values? e.g., * became \*
+    return line;
+  }
+  for (var i=0; i<totalLines; i++) {
+    if (i >= expectedLines.length) {
+      result.push('got extra line: ' + repr(gotLines[i]));
+      continue;
+    } else if (i >= gotLines.length) {
+      result.push('expected extra line: ' + displayExpectedLine(expectedLines[i]));
+      continue;
+    }
+    var gotLine = gotLines[i];
+    var expectRE = new RegExp('^' + expectedLines[i] + '$');
+    if (gotLine.search(expectRE) != -1) {
+      result.push('match: ' + repr(gotLine));
+    } else {
+      result.push('no match: ' + repr(gotLine) + ' (' 
+            + displayExpectedLine(expectedLines[i]) + ')');
+    }
+  }
+  return result;
 };
 
 // Should I really be setting this on RegExp?
@@ -839,6 +896,82 @@ doctest.repr.registry = [
      },
      doctest.arrayRepr
      ]];
+
+doctest.objDiff = function (orig, current) {
+  var result = {
+    added: {},
+    removed: {},
+    changed: {},
+    same: {}
+  };
+  for (var i in orig) {
+    if (! (i in current)) {
+      result.removed[i] = orig[i];
+    } else if (orig[i] !== current[i]) {
+      result.changed[i] = [orig[i], current[i]];
+    } else {
+      result.same[i] = orig[i];
+    }
+  }
+  for (var i in current) {
+    if (! (i in orig)) {
+      result.added[i] = current[i];
+    }
+  }
+  return result;
+};
+
+doctest.writeDiff = function (orig, current, indent) {
+  if (typeof orig != 'object' || typeof current != 'object') {
+    writeln(indent + repr(orig, indent) + ' -> ' + repr(current, indent));
+    return;
+  }
+  indent = indent || '';
+  var diff = doctest.objDiff(orig, current);
+  var i, keys;
+  var any = false;
+  keys = doctest._sortedKeys(diff.added);
+  for (i=0; i<keys.length; i++) {
+    any = true;
+    writeln(indent + '+' + keys[i] + ': '
+            + repr(diff.added[keys[i]], indent));
+  }
+  keys = doctest._sortedKeys(diff.removed);
+  for (i=0; i<keys.length; i++) {
+    any = true;
+    writeln(indent + '-' + keys[i] + ': '
+            + repr(diff.removed[keys[i]], indent));
+  }
+  keys = doctest._sortedKeys(diff.changed);
+  for (i=0; i<keys.length; i++) {
+    any = true;
+    writeln(indent + keys[i] + ': '
+            + repr(diff.changed[keys[i]][0], indent)
+            + ' -> '
+            + repr(diff.changed[keys[i]][1], indent));
+  }
+  if (! any) {
+    writeln(indent + '(no changes)');
+  }
+};
+
+doctest.objectsEqual = function (ob1, ob2) {
+  var i;
+  if (typeof ob1 != 'object' || typeof ob2 != 'object') {
+    return ob1 === ob2;
+  }
+  for (i in ob1) {
+    if (ob1[i] !== ob2[i]) {
+      return false;
+    }
+  }
+  for (i in ob2) {
+    if (! (i in ob1)) {
+      return false;
+    }
+  }
+  return true;
+};
 
 doctest.getElementsByTagAndClassName = function (tagName, className, parent/*optional*/) {
     parent = parent || document;
