@@ -320,6 +320,19 @@ considered a failure.  You can pass a second argument with a timeout,
 or set <code>doctest.defaultTimeout</code> to change the value of that
 timeout.</p>
 
+<h3>Halting Further Tests</h3>
+
+<div>The tests are run in order, even if one fails.  In some cases this
+is tedious, such as a test that requires the server to be present -- 
+everything will of course fail, but nothing really means anything.
+</div>
+
+<div>If you use <code>throw Abort('reason')</code> then all further
+tests will be skipped.  This can also be thrown in callbacks.  Don't
+even instantiate this class if you don't want to stop the tests;
+simply instantiating it is enough (because it's hard to actually
+catch exceptions in callbacks).</div>
+
 <h3>Spy/Mock</h3>
 
 <p>Also included is a simple mock object called <code>Spy</code>.

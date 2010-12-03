@@ -328,6 +328,11 @@ doctest.JSRunner.prototype.runParsed = function (parsed, index, finishedCallback
   this.run(example);
   var finishThisRun = function () {
     self.finishRun(example);
+    if (doctest._AbortCalled) {
+      // FIXME: I need to find a way to make this more visible:
+      logWarn('Abort() called');
+      return;
+    }
     self.runParsed(parsed, index+1, finishedCallback);
   };
   if (doctest._waitCond !== null) {
@@ -430,6 +435,9 @@ doctest.JSRunner.prototype.run = function (example) {
         logDebug(tracebackLines[i]);
       }
     }
+    if (e instanceof Abort) {
+      throw e;
+    }
   }
   if (typeof result != 'undefined'
       && result !== null
@@ -437,6 +445,25 @@ doctest.JSRunner.prototype.run = function (example) {
     writeln(doctest.repr(result));
   }
 };
+
+doctest._AbortCalled = false;
+
+doctest.Abort = function (message) {
+  if (this === window) {
+    return new Abort(message);
+  }
+  this.message = message;
+  // We register this so Abort can be raised in an async call: 
+  doctest._AbortCalled = true;
+};
+
+doctest.Abort.prototype.toString = function () {
+  return this.message;
+};
+
+if (typeof Abort == 'undefined') {
+  Abort = doctest.Abort;
+}
 
 doctest.JSRunner.prototype.finishRun = function(example) {
   this.capturer.stopCapture();
@@ -489,7 +516,11 @@ doctest.JSRunner.prototype.showCheckDifference = function (got, expectedRegex) {
   }
   expectedRegex = expectedRegex.substr(1, expectedRegex.length-2);
   // Technically this might not be right, but this is all a heuristic:
+  var expectedRegex = expectedRegex.replace(/\(\?:\.\|\[\\r\\n\]\)\*/g, '...');
   var expectedLines = expectedRegex.split('\\n');
+  for (var i=0; i<expectedLines.length; i++) {
+    expectedLines[i] = expectedLines[i].replace(/\.\.\./g, '(?:.|[\r\n])*');
+  }
   var gotLines = got.split('\n');
   var result = [];
   var totalLines = expectedLines.length > gotLines.length ? 
@@ -511,7 +542,13 @@ doctest.JSRunner.prototype.showCheckDifference = function (got, expectedRegex) {
       continue;
     }
     var gotLine = gotLines[i];
-    var expectRE = new RegExp('^' + expectedLines[i] + '$');
+    try {
+      var expectRE = new RegExp('^' + expectedLines[i] + '$');
+    } catch (e) {
+      result.push('regex match failed: ' + repr(gotLine) + ' ('
+            + expectedLines[i] + ')');
+      continue;
+    }
     if (gotLine.search(expectRE) != -1) {
       result.push('match: ' + repr(gotLine));
     } else {
