@@ -240,8 +240,8 @@ doctest.Reporter.prototype.reportSuccess = function (example, output) {
     }
   }
   this.success += 1;
-  if ((example.output.indexOf('...') >= 0 
-       || example.output.indexOf('?') >= 0) 
+  if ((example.output.indexOf('...') >= 0
+       || example.output.indexOf('?') >= 0)
       && output) {
     example.markExample('doctest-success', 'Output:\n' + output);
   } else {
@@ -453,7 +453,7 @@ doctest.Abort = function (message) {
     return new Abort(message);
   }
   this.message = message;
-  // We register this so Abort can be raised in an async call: 
+  // We register this so Abort can be raised in an async call:
   doctest._AbortCalled = true;
 };
 
@@ -523,7 +523,7 @@ doctest.JSRunner.prototype.showCheckDifference = function (got, expectedRegex) {
   }
   var gotLines = got.split('\n');
   var result = [];
-  var totalLines = expectedLines.length > gotLines.length ? 
+  var totalLines = expectedLines.length > gotLines.length ?
     expectedLines.length : gotLines.length;
   function displayExpectedLine(line) {
     return line;
@@ -552,7 +552,7 @@ doctest.JSRunner.prototype.showCheckDifference = function (got, expectedRegex) {
     if (gotLine.search(expectRE) != -1) {
       result.push('match: ' + repr(gotLine));
     } else {
-      result.push('no match: ' + repr(gotLine) + ' (' 
+      result.push('no match: ' + repr(gotLine) + ' ('
             + displayExpectedLine(expectedLines[i]) + ')');
     }
   }
@@ -690,8 +690,8 @@ doctest.reload = function (button/*optional*/) {
 };
 
 /* Taken from MochiKit, with an addition to print objects */
-doctest.repr = function (o, indent, maxLen) {
-    indent = indent || '';
+doctest.repr = function (o, indentString, maxLen) {
+    indentString = indentString || '';
     if (doctest._reprTracker === null) {
       var iAmTheTop = true;
       doctest._reprTracker = [];
@@ -712,14 +712,14 @@ doctest.repr = function (o, indent, maxLen) {
       }
       try {
           if (typeof(o.__repr__) == 'function') {
-              return o.__repr__(indent, maxLen);
+              return o.__repr__(indentString, maxLen);
           } else if (typeof(o.repr) == 'function' && o.repr != arguments.callee) {
-              return o.repr(indent, maxLen);
+              return o.repr(indentString, maxLen);
           }
           for (var i=0; i<doctest.repr.registry.length; i++) {
               var item = doctest.repr.registry[i];
               if (item[0](o)) {
-                  return item[1](o, indent, maxLen);
+                  return item[1](o, indentString, maxLen);
               }
           }
       } catch (e) {
@@ -732,7 +732,7 @@ doctest.repr = function (o, indent, maxLen) {
       try {
           var ostring = (o + "");
           if (ostring == '[object Object]' || ostring == '[object]') {
-            ostring = doctest.objRepr(o, indent, maxLen);
+            ostring = doctest.objRepr(o, indentString, maxLen);
           }
       } catch (e) {
           return "[" + typeof(o) + "]";
@@ -788,7 +788,7 @@ doctest._sortedKeys = function (obj) {
   return keys;
 };
 
-doctest.objRepr = function (obj, indent, maxLen) {
+doctest.objRepr = function (obj, indentString, maxLen) {
   var restorer = doctest._reprTrackSave();
   var ostring = '{';
   var keys = doctest._sortedKeys(obj);
@@ -796,68 +796,68 @@ doctest.objRepr = function (obj, indent, maxLen) {
     if (ostring != '{') {
       ostring += ', ';
     }
-    ostring += keys[i] + ': ' + doctest.repr(obj[keys[i]], indent, maxLen);
+    ostring += keys[i] + ': ' + doctest.repr(obj[keys[i]], indentString, maxLen);
   }
   ostring += '}';
-  if (ostring.length > (maxLen - indent.length)) {
+  if (ostring.length > (maxLen - indentString.length)) {
     doctest._reprTrackRestore(restorer);
-    return doctest.multilineObjRepr(obj, indent, maxLen);
+    return doctest.multilineObjRepr(obj, indentString, maxLen);
   }
   return ostring;
 };
 
-doctest.multilineObjRepr = function (obj, indent, maxLen) {
+doctest.multilineObjRepr = function (obj, indentString, maxLen) {
   var keys = doctest._sortedKeys(obj);
   var ostring = '{\n';
   for (var i=0; i<keys.length; i++) {
-    ostring += indent + '  ' + keys[i] + ': ';
-    ostring += doctest.repr(obj[keys[i]], indent+'  ', maxLen);
+    ostring += indentString + '  ' + keys[i] + ': ';
+    ostring += doctest.repr(obj[keys[i]], indentString+'  ', maxLen);
     if (i != keys.length - 1) {
       ostring += ',';
     }
     ostring += '\n';
   }
-  ostring += indent + '}';
+  ostring += indentString + '}';
   return ostring;
 };
 
-doctest.arrayRepr = function (obj, indent, maxLen) {
+doctest.arrayRepr = function (obj, indentString, maxLen) {
   var restorer = doctest._reprTrackSave();
   var s = "[";
   for (var i=0; i<obj.length; i++) {
-    s += doctest.repr(obj[i], indent, maxLen);
+    s += doctest.repr(obj[i], indentString, maxLen);
     if (i != obj.length-1) {
       s += ", ";
     }
   }
   s += "]";
-  if (s.length > (maxLen + indent.length)) {
+  if (s.length > (maxLen + indentString.length)) {
     doctest._reprTrackRestore(restorer);
-    return doctest.multilineArrayRepr(obj, indent, maxLen);
+    return doctest.multilineArrayRepr(obj, indentString, maxLen);
   }
   return s;
 };
 
-doctest.multilineArrayRepr = function (obj, indent, maxLen) {
+doctest.multilineArrayRepr = function (obj, indentString, maxLen) {
   var s = "[\n";
   for (var i=0; i<obj.length; i++) {
-    s += '  ' + doctest.repr(obj[i], indent+'  ', maxLen);
+    s += indentString + '  ' + doctest.repr(obj[i], indentString+'  ', maxLen);
     if (i != obj.length - 1) {
       s += ',';
     }
     s += '\n';
   }
-  s += indent + ']';
+  s += indentString + ']';
   return s;
 };
 
-doctest.xmlRepr = function (doc, indent) {
+doctest.xmlRepr = function (doc, indentString) {
   var i;
   if (doc.nodeType == doc.DOCUMENT_NODE) {
-    return doctest.xmlRepr(doc.childNodes[0], indent);
+    return doctest.xmlRepr(doc.childNodes[0], indentString);
   }
-  indent = indent || '';
-  var s = indent + '<' + doc.tagName;
+  indentString = indentString || '';
+  var s = indentString + '<' + doc.tagName;
   var attrs = [];
   if (doc.attributes && doc.attributes.length) {
     for (i=0; i<doc.attributes.length; i++) {
@@ -889,12 +889,12 @@ doctest.xmlRepr = function (doc, indent) {
         s += '\n';
         hasNewline = true;
       }
-      s += doctest.xmlRepr(el, indent + '  ');
+      s += doctest.xmlRepr(el, indentString + '  ');
       s += '\n';
     }
   }
   if (hasNewline) {
-    s += indent;
+    s += indentString;
   }
   s += '</' + doc.tagName + '>';
   return s;
@@ -950,7 +950,7 @@ doctest.objDiff = function (orig, current) {
       result.same[i] = orig[i];
     }
   }
-  for (var i in current) {
+  for (i in current) {
     if (! (i in orig)) {
       result.added[i] = current[i];
     }
@@ -958,37 +958,37 @@ doctest.objDiff = function (orig, current) {
   return result;
 };
 
-doctest.writeDiff = function (orig, current, indent) {
+doctest.writeDiff = function (orig, current, indentString) {
   if (typeof orig != 'object' || typeof current != 'object') {
-    writeln(indent + repr(orig, indent) + ' -> ' + repr(current, indent));
+    writeln(indentString + repr(orig, indentString) + ' -> ' + repr(current, indentString));
     return;
   }
-  indent = indent || '';
+  indentString = indentString || '';
   var diff = doctest.objDiff(orig, current);
   var i, keys;
   var any = false;
   keys = doctest._sortedKeys(diff.added);
   for (i=0; i<keys.length; i++) {
     any = true;
-    writeln(indent + '+' + keys[i] + ': '
-            + repr(diff.added[keys[i]], indent));
+    writeln(indentString + '+' + keys[i] + ': '
+            + repr(diff.added[keys[i]], indentString));
   }
   keys = doctest._sortedKeys(diff.removed);
   for (i=0; i<keys.length; i++) {
     any = true;
-    writeln(indent + '-' + keys[i] + ': '
-            + repr(diff.removed[keys[i]], indent));
+    writeln(indentString + '-' + keys[i] + ': '
+            + repr(diff.removed[keys[i]], indentString));
   }
   keys = doctest._sortedKeys(diff.changed);
   for (i=0; i<keys.length; i++) {
     any = true;
-    writeln(indent + keys[i] + ': '
-            + repr(diff.changed[keys[i]][0], indent)
+    writeln(indentString + keys[i] + ': '
+            + repr(diff.changed[keys[i]][0], indentString)
             + ' -> '
-            + repr(diff.changed[keys[i]][1], indent));
+            + repr(diff.changed[keys[i]][1], indentString));
   }
   if (! any) {
-    writeln(indent + '(no changes)');
+    writeln(indentString + '(no changes)');
   }
 };
 
@@ -1083,7 +1083,7 @@ doctest._consoleFunc = function (attr) {
       // FIXME: do something
     };
   }
-  return result;    
+  return result;
 };
 
 if (typeof log == 'undefined') {
