@@ -390,6 +390,10 @@ doctest.formatTraceback = function (e, skipFrames) {
       if (stack[i] == '@:0' || ! stack[i]) {
         continue;
       }
+      if (stack[i].indexOf('@') == -1) {
+        lines.push(stack[i]);
+        continue;
+      }
       var parts = stack[i].split('@');
       var context = parts[0];
       parts = parts[1].split(':');
