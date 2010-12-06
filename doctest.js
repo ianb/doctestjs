@@ -1331,10 +1331,10 @@ var docTestOnLoad = function () {
       if (el) {
         if (/\btest\b/.exec(el.className)) {
           testEls = doctest.getElementsByTagAndClassName('pre', 'doctest', el);
-        }
-        var elements = doctest.getElementsByTagAndClassName('pre', ['doctest', 'setup']);
-        for (var i=0; i<testEls.length; i++) {
-          elements.push(testEls[i]);
+          var elements = doctest.getElementsByTagAndClassName('pre', ['doctest', 'setup']);
+          for (var i=0; i<testEls.length; i++) {
+            elements.push(testEls[i]);
+          }
         }
       }
     }
