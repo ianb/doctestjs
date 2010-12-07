@@ -1153,6 +1153,9 @@ doctest.autoSetup = function (parent) {
     location.hash = location.hash;
   }
   var output = document.getElementById('doctestOutput');
+  if (! tags.length) {
+    tags = document.getElementsByTagName('body');
+  }
   if (! output) {
     output = document.createElement('pre');
     output.setAttribute('id', 'doctestOutput');
@@ -1209,6 +1212,7 @@ doctest.Spy = function (name, options, extraOptions) {
   self.binds = options.binds || null;
   self.throwError = options.throwError || null;
   self.ignoreThis = options.ignoreThis || false;
+  self.wrapArgs = options.wrapArgs || false;
   self.func = function () {
     self.called = true;
     self.calledWait = true;
@@ -1247,7 +1251,12 @@ doctest.Spy = function (name, options, extraOptions) {
       if (i) {
         s += ', ';
       }
-      s += doctest.repr(self.args[i], true);
+      if (self.wrapArgs) {
+        var maxLen = 10;
+      } else {
+        var maxLen = undefined;
+      }
+      s += doctest.repr(self.args[i], '', maxLen);
     }
     s += ')';
     return s;
