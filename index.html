@@ -487,6 +487,24 @@ shown.</p>
 want to test if any attributes have changed.</p>
 </div>
 
+<h3>CoffeeScript</h3>
+
+<p>You can use <a
+href="http://jashkenas.github.com/coffee-script/">CoffeeScript</a> in
+your tests instead of Javascript.  You should include your files as
+usual (e.g., using <code>type="text/coffeescript"</code> or
+precompiling to Javascript).  To make the actual tests
+<i>themselves</i> use CoffeeScript, use this in the head:</p>
+
+<pre>
+&lt;script&gt;
+  doctest.useCoffeeScript();
+&lt;/script&gt;
+</pre>
+
+<p>This replaces <code>doctest.eval</code> with a function that uses
+<code>CoffeeScript.compile</code>.</p>
+
 <h3>To Do</h3>
 
 <ol>

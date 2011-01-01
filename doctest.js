@@ -427,7 +427,7 @@ doctest.JSRunner.prototype.run = function (example) {
   this.capturer = new doctest.OutputCapturer();
   this.capturer.capture();
   try {
-    var result = window.eval(example.example);
+    var result = doctest.eval(example.example);
   } catch (e) {
     var tracebackLines = doctest.formatTraceback(e);
     writeln('Error: ' + (e.message || e));
@@ -657,7 +657,7 @@ doctest.assert = function (expr, statement) {
     if (! statement) {
       statement = expr;
     }
-    expr = eval(expr);
+    expr = doctest.eval(expr);
   }
   if (! expr) {
     throw('AssertionError: '+statement);
@@ -1106,6 +1106,26 @@ if (typeof logWarn == 'undefined') {
   logWarn = doctest._consoleFunc('warn');
 }
 
+doctest.eval = window.eval;
+
+doctest.useCoffeeScript = function (options) {
+  options = options || {};
+  options.bare = true;
+  options.globals = true;
+  if (! options.fileName) {
+    options.fileName = 'repl';
+  }
+  if (typeof CoffeeScript == 'undefined') {
+    doctest.logWarn('coffee-script.js is not included');
+    throw 'coffee-script.js is not included';
+  }
+  doctest.eval = function (code) {
+    var src = CoffeeScript.compile(code, options);
+    logDebug('Compiled code to:', src);
+    return window.eval(src);
+  }
+};
+
 doctest.autoSetup = function (parent) {
   var tags = doctest.getElementsByTagAndClassName('div', 'test', parent);
   // First we'll make sure everything has an ID
@@ -1179,13 +1199,14 @@ doctest.autoSetup = function (parent) {
 doctest.autoSetup._idCount = 0;
 
 doctest.Spy = function (name, options, extraOptions) {
+  var self;
   if (doctest.spies[name]) {
      self = doctest.spies[name];
      if (! options && ! extraOptions) {
        return self;
      }
   } else {
-    var self = function () {
+    self = function () {
       return self.func.apply(this, arguments);
     };
   }
