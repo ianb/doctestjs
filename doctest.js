@@ -1106,7 +1106,9 @@ if (typeof logWarn == 'undefined') {
   logWarn = doctest._consoleFunc('warn');
 }
 
-doctest.eval = window.eval;
+doctest.eval = function(script) {
+  window.eval(script);
+};
 
 doctest.useCoffeeScript = function (options) {
   options = options || {};
