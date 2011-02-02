@@ -478,6 +478,9 @@ doctest.JSRunner.prototype.finishRun = function(example) {
     this.reporter.reportFailure(example, this.capturer.output);
     logDebug('Failure: '+doctest.repr(example.output)
              +' != '+doctest.repr(this.capturer.output));
+    if (location.href.search(/abort/) != -1) {
+      doctest.Abort('abort on first failure');
+    }
   }
 };
 
@@ -1106,7 +1109,9 @@ if (typeof logWarn == 'undefined') {
   logWarn = doctest._consoleFunc('warn');
 }
 
-doctest.eval = window.eval;
+doctest.eval = function () {
+  return window.eval.apply(window, arguments);
+};
 
 doctest.useCoffeeScript = function (options) {
   options = options || {};
@@ -1123,7 +1128,7 @@ doctest.useCoffeeScript = function (options) {
     var src = CoffeeScript.compile(code, options);
     logDebug('Compiled code to:', src);
     return window.eval(src);
-  }
+  };
 };
 
 doctest.autoSetup = function (parent) {
