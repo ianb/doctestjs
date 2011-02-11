@@ -1021,15 +1021,27 @@ doctest.getElementsByTagAndClassName = function (tagName, className, parent/*opt
     parent = parent || document;
     var els = parent.getElementsByTagName(tagName);
     var result = [];
-    if (typeof className == 'object' && className.length) {
-      className = className.join('|');
+    var regexes = [];
+    if (typeof className == 'string') {
+      className = [className];
     }
-    var re = new RegExp("\\b"+className+"\\b");
-    for (var i=0; i<els.length; i++) {
-        var el = els[i];
-        if (el.className && el.className.search(re) != -1) {
-            result.push(el);
+    for (var i=0; i<className.length; i++) {
+      regexes.push(new RegExp("\\b" + className[i] + "\\b"));
+    }
+    for (i=0; i<els.length; i++) {
+      var el = els[i];
+      if (el.className) {
+        var passed = true;
+        for (var j=0; j<regexes.length; j++) {
+          if (el.className.search(regexes[j]) == -1) {
+            passed = false;
+            break;
+          }
         }
+        if (passed) {
+          result.push(el);
+        }
+      }
     }
     return result;
 };
@@ -1365,8 +1377,8 @@ var docTestOnLoad = function () {
       var el = document.getElementById(location.hash.substr(1));
       if (el) {
         if (/\btest\b/.exec(el.className)) {
-          testEls = doctest.getElementsByTagAndClassName('pre', 'doctest', el);
-          var elements = doctest.getElementsByTagAndClassName('pre', ['doctest', 'setup']);
+          var testEls = doctest.getElementsByTagAndClassName('pre', 'doctest', el);
+          elements = doctest.getElementsByTagAndClassName('pre', ['doctest', 'setup']);
           for (var i=0; i<testEls.length; i++) {
             elements.push(testEls[i]);
           }
