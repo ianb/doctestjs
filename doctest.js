@@ -779,7 +779,7 @@ doctest._reprTrackSave = function () {
 };
 
 doctest._reprTrackRestore = function (point) {
-  doctest._reprTracker.splice(point);
+  doctest._reprTracker.splice(point, doctest._reprTracker.length - point);
 };
 
 doctest._sortedKeys = function (obj) {
