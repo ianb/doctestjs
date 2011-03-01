@@ -495,7 +495,7 @@ doctest.JSRunner.prototype.checkResult = function (got, expected) {
   }
   expected = RegExp.escape(expected);
   // Note: .* doesn't match newlines, [^] doesn't work on IE
-  expected = '^' + expected.replace(/\\\.\\\.\\\./g, "(?:.|[\\r\\n])*") + '$';
+  expected = '^' + expected.replace(/\\\.\\\.\\\./g, "[\\S\\s\\r\\n]*") + '$';
   expected = expected.replace(/\\\?/g, "[a-zA-Z0-9_.]+");
   expected = expected.replace(/[ \t]+/g, " +");
   expected = expected.replace(/\n/g, '\\n');
