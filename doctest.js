@@ -14,17 +14,19 @@ function doctest(verbosity/*default=0*/, elements/*optional*/,
   var output = document.getElementById(outputId || 'doctestOutput');
   var reporter = new doctest.Reporter(output, verbosity || 0);
   if (elements) {
-      if (typeof elements == 'string') {
-        // Treat it as an id
-        elements = [document.getElementById(elementId)];
-      }
-      if (! elements.length) {
-          throw('No elements');
-      }
-      var suite = new doctest.TestSuite(elements, reporter);
+    if (typeof elements == 'string') {
+      // Treat it as an id
+      elements = [document.getElementById(elementId)];
+    }
+    if (! elements.length) {
+      throw('No elements');
+    }
+    var suite = new doctest.TestSuite(elements, reporter);
+  } else if (doctest.defaultElements) {
+    var els = doctest.defaultElements;
   } else {
-      var els = doctest.getElementsByTagAndClassName('pre', 'doctest');
-      var suite = new doctest.TestSuite(els, reporter);
+    var els = doctest.getElementsByTagAndClassName('pre', 'doctest');
+    var suite = new doctest.TestSuite(els, reporter);
   }
   suite.run();
 }
@@ -75,8 +77,8 @@ doctest.Context.prototype.run = function (parserIndex) {
   var self = this;
   parserIndex = parserIndex || 0;
   if (parserIndex >= this.testSuite.parsers.length) {
-    logInfo('All examples from all sections tested');
     this.runner.reporter.finish();
+    logInfo('All examples from all sections tested');
     return;
   }
   logInfo('Testing example ' + (parserIndex+1) + ' of '
@@ -276,6 +278,9 @@ doctest.Reporter.prototype.finish = function () {
                + '<span class="total">' + (this.success+this.failure) + '</span> passed, '
                + '<span class="failed" style="color: '+color+'">'
                + this.failure + '</span> failed.');
+  if (window.doctestReportFinish) {
+    window.doctestReportFinish(this.success, this.failure);
+  }
 };
 
 doctest.Reporter.prototype.writeln = function (text) {
@@ -432,12 +437,14 @@ doctest.JSRunner.prototype.run = function (example) {
     var tracebackLines = doctest.formatTraceback(e);
     writeln('Error: ' + (e.message || e));
     var result = null;
-    logWarn('Error in expression: ' + example.example);
-    logDebug('Traceback for error', e);
+    logInfo('Error in expression: ' + example.example);
     if (tracebackLines) {
+      logDebug('Traceback for error', e);
       for (var i=0; i<tracebackLines.length; i++) {
         logDebug(tracebackLines[i]);
       }
+    } else {
+      logDebug('Error:', e);
     }
     if (e instanceof Abort) {
       throw e;
@@ -507,7 +514,7 @@ doctest.JSRunner.prototype.checkResult = function (got, expected) {
       var check = this.showCheckDifference(got, expected);
       logWarn('Mismatch of output (line-by-line comparison follows)');
       for (var i=0; i<check.length; i++) {
-        logDebug(check[i]);
+        logInfo(check[i]);
       }
     }
   }
@@ -1088,8 +1095,9 @@ if (typeof repr == 'undefined') {
 }
 
 doctest._consoleFunc = function (attr) {
-  if (typeof window.console != 'undefined'
-      && typeof window.console[attr] != 'undefined') {
+  var result;
+  if (window.console !== undefined
+      && window.console[attr] !== undefined) {
     if (typeof console[attr].apply === 'function') {
       result = function() {
         console[attr].apply(console, arguments);
@@ -1097,9 +1105,13 @@ doctest._consoleFunc = function (attr) {
     } else {
       result = console[attr];
     }
+  } else if (window.console !== undefined && console.log) {
+    result = function () {
+      console.log.apply(console, arguments);
+    };
   } else {
     result = function () {
-      // FIXME: do something
+      // Do nothing?
     };
   }
   return result;
@@ -1110,7 +1122,7 @@ if (typeof log == 'undefined') {
 }
 
 if (typeof logDebug == 'undefined') {
-  logDebug = doctest._consoleFunc('log');
+  logDebug = doctest._consoleFunc('debug');
 }
 
 if (typeof logInfo == 'undefined') {
@@ -1385,9 +1397,15 @@ var docTestOnLoad = function () {
         }
       }
     }
-    doctest(0, elements);
+    if ((/doctestWait/).exec(loc)) {
+      doctest.defaultElements = elements;
+    } else {
+      doctest(0, elements);
+    }
   }
 };
+
+doctest.defaultElements = null;
 
 if (window.addEventListener) {
     window.addEventListener('load', docTestOnLoad, false);
