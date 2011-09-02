@@ -210,22 +210,33 @@ doctest.Example.prototype.markExample = function (name, detail) {
   }
 };
 
-doctest.Reporter = function (container, verbosity) {
+doctest.Reporter = function (container, verbosity, /*optional*/ hook) {
   if (this === window) {
     throw('you forgot new!');
   }
   if (! container) {
     throw('No container passed to doctest.Reporter');
   }
+  if ((! hook) && window.doctestReporterHook) {
+    this.hook = window.doctestReporterHook;
+  } else {
+    this.hook = {};
+  }
   this.container = container;
   this.verbosity = verbosity;
   this.success = 0;
   this.failure = 0;
   this.elements = 0;
+  if (this.hook.init) {
+    this.hook.init(this, verbosity);
+  }
 };
 
 doctest.Reporter.prototype.startElement = function (el) {
   this.elements += 1;
+  if (this.hook.startElement) {
+    this.hook.startElement(el);
+  }
   logDebug('Adding element', el);
 };
 
@@ -249,6 +260,9 @@ doctest.Reporter.prototype.reportSuccess = function (example, output) {
   } else {
     example.markExample('doctest-success');
   }
+  if (this.hook.reportSuccess) {
+    this.hook.reportSuccess(example, output);
+  }
 };
 
 doctest.Reporter.prototype.reportFailure = function (example, output) {
@@ -264,6 +278,9 @@ doctest.Reporter.prototype.reportFailure = function (example, output) {
   this.write(this.formatOutput(output));
   this.failure += 1;
   example.markExample('doctest-failure', 'Actual output:\n' + output);
+  if (this.hook.reportFailure) {
+    this.hook.reportFailure(example, output);
+  }
 };
 
 doctest.Reporter.prototype.finish = function () {
@@ -278,8 +295,8 @@ doctest.Reporter.prototype.finish = function () {
                + '<span class="total">' + (this.success+this.failure) + '</span> passed, '
                + '<span class="failed" style="color: '+color+'">'
                + this.failure + '</span> failed.');
-  if (window.doctestReportFinish) {
-    window.doctestReportFinish(this.success, this.failure);
+  if (this.hook.finish) {
+    this.hook.finish(this);
   }
 };
 
@@ -288,13 +305,17 @@ doctest.Reporter.prototype.writeln = function (text) {
 };
 
 doctest.Reporter.prototype.write = function (text) {
-  var leading = /^[ ]*/.exec(text)[0];
-  text = text.substr(leading.length);
+  var html = text;
+  var leading = /^[ ]*/.exec(html)[0];
+  html = html.substr(leading.length);
   for (var i=0; i<leading.length; i++) {
-    text = String.fromCharCode(160)+text;
+    text = String.fromCharCode(160)+html;
   }
-  text = text.replace(/\n/g, '<br>');
-  this.container.innerHTML += text;
+  html = html.replace(/\n/g, '<br>');
+  this.container.innerHTML += html;
+  if (this.hook.write) {
+    this.hook.write(text);
+  }
 };
 
 doctest.Reporter.prototype.formatOutput = function (text) {

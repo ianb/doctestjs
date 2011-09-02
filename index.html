@@ -505,6 +505,54 @@ precompiling to Javascript).  To make the actual tests
 <p>This replaces <code>doctest.eval</code> with a function that uses
 <code>CoffeeScript.compile</code>.</p>
 
+<h3>Hooking into the reporter</h3>
+
+<p>You may want to get access to the test results.  The easiest way
+isn't to replace the reporter, but there is a way to access the
+results of the reporter via a <em>reporter hook</em>.</p>
+
+<p>If there is an object named <code>doctestReporterHook</code> when
+the doctests are run, then that object will be used.  If you have the
+tests running automatically on load, then you should be sure to get
+this object in place immediately (via
+<code>&lt;script&gt;</code>).</p>
+
+<p>The object can implement several methods, all optional:</p>
+
+<dl>
+  <dt><code>.init(reporter)</code></dt>
+
+  <dd>This is called once at the beginning, and lets you bind the hook
+  to the reporter.</dd>
+
+  <dt><code>.startElement(el)</code></dt>
+
+  <dd>This is called at the beginning of each new
+  <code>&lt;pre&gt;</code> element that is tested.  This could be
+  considered a TestCase if you are mapping this to xUnit
+  terminology.</dd>
+
+  <dt><code>.reportSuccess(example, output)</code></dt>
+
+  <dd>This is called for each line of testing (i.e., each line that
+  starts with <code>$</code>).  It gives the example (which is an
+  instance of <code>doctest.Example</code> and the text that was
+  expected (which matches, hence the sucess!)</dd>
+
+  <dt><code>.reportFailure(example, output)</code></dt>
+
+  <dd>More interesting, this is a failure.  The example output
+  (<code>example.output</code>) did not match the actual output
+  (<code>output</code>).</dd>
+
+  <dt><code>.finish(reporter)</code></dt>
+
+  <dd>All tests have finished running.  You can access a summary of
+  the results with <code>reporter.success</code> and
+  <code>reporter.failure</code></dd>
+
+</dl>
+
 <h3>To Do</h3>
 
 <ol>
