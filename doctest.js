@@ -958,7 +958,7 @@ doctest.repr.registry = [
      doctest.xmlRepr],
     [function (o) {
          var typ = typeof o;
-         if ((typ != 'object' && ! (type == 'function' && typeof o.item == 'function')) ||
+         if ((typ != 'object' && ! (typ == 'function' && typeof o.item == 'function')) ||
              o === null ||
              typeof o.length != 'number' ||
              o.nodeType === 3) {
