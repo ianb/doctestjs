@@ -525,8 +525,10 @@ doctest.JSRunner.prototype.checkResult = function (got, expected) {
   // Note: .* doesn't match newlines, [^] doesn't work on IE
   expected = '^' + expected.replace(/\\\.\\\.\\\./g, "[\\S\\s\\r\\n]*") + '$';
   expected = expected.replace(/\\\?/g, "[a-zA-Z0-9_.]+");
+  expected = expected.replace(/^[ \t]+/gm, "\\s*");
   expected = expected.replace(/[ \t]+/g, " +");
   expected = expected.replace(/\n/g, '\\n');
+  console.log(expected);
   var re = new RegExp(expected);
   var result = got.search(re) != -1;
   if (! result) {
@@ -551,7 +553,7 @@ doctest.JSRunner.prototype.showCheckDifference = function (got, expectedRegex) {
   }
   expectedRegex = expectedRegex.substr(1, expectedRegex.length-2);
   // Technically this might not be right, but this is all a heuristic:
-  var expectedRegex = expectedRegex.replace(/\(\?:\.\|\[\\r\\n\]\)\*/g, '...');
+  expectedRegex = expectedRegex.replace(/\(\?:\.\|\[\\r\\n\]\)\*/g, '...');
   var expectedLines = expectedRegex.split('\\n');
   for (var i=0; i<expectedLines.length; i++) {
     expectedLines[i] = expectedLines[i].replace(/\.\.\./g, '(?:.|[\r\n])*');
