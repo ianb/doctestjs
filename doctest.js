@@ -833,7 +833,7 @@ doctest.objRepr = function (obj, indentString, maxLen) {
     if (ostring != '{') {
       ostring += ', ';
     }
-    ostring += keys[i] + ': ' + doctest.repr(obj[keys[i]], indentString, maxLen);
+    ostring += doctest._keyRepr(keys[i]) + ': ' + doctest.repr(obj[keys[i]], indentString, maxLen);
   }
   ostring += '}';
   if (ostring.length > (maxLen - indentString.length)) {
@@ -847,7 +847,7 @@ doctest.multilineObjRepr = function (obj, indentString, maxLen) {
   var keys = doctest._sortedKeys(obj);
   var ostring = '{\n';
   for (var i=0; i<keys.length; i++) {
-    ostring += indentString + '  ' + keys[i] + ': ';
+    ostring += indentString + '  ' + doctest._keyRepr(keys[i]) + ': ';
     ostring += doctest.repr(obj[keys[i]], indentString+'  ', maxLen);
     if (i != keys.length - 1) {
       ostring += ',';
@@ -856,6 +856,14 @@ doctest.multilineObjRepr = function (obj, indentString, maxLen) {
   }
   ostring += indentString + '}';
   return ostring;
+};
+
+doctest._keyRepr = function (key) {
+  if (key.search(/^[a-zA-Z_][a-zA-Z0-9_]*$/) === 0) {
+    return key;
+  } else {
+    return doctest.repr(key);
+  }
 };
 
 doctest.arrayRepr = function (obj, indentString, maxLen) {
