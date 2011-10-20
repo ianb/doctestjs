@@ -336,7 +336,7 @@ doctest.Reporter.prototype.formatOutput = function (text) {
   var lines = text.split(/\n/);
   var output = '';
   for (var i=0; i<lines.length; i++) {
-    output += '    '+doctest.escapeSpaces(doctest.escapeHTML(lines[i]))+'\n';
+    output += doctest.escapeSpaces('    ' + doctest.escapeHTML(lines[i]))+'\n';
   }
   return output;
 };
@@ -465,32 +465,28 @@ doctest.JSRunner.prototype.run = function (example) {
   this.capturer.capture();
   this.capturer.captureLog();
   try {
-    try {
-      var result = doctest.eval(example.example);
-    } catch (e) {
-      var tracebackLines = doctest.formatTraceback(e);
-      writeln('Error: ' + (e.message || e));
-      var result = null;
-      logInfo('Error in expression: ' + example.example);
-      if (tracebackLines) {
-        logDebug('Traceback for error', e);
-        for (var i=0; i<tracebackLines.length; i++) {
-          logDebug(tracebackLines[i]);
-        }
-      } else {
-        logDebug('Error:', e);
+    var result = doctest.eval(example.example);
+  } catch (e) {
+    var tracebackLines = doctest.formatTraceback(e);
+    writeln('Error: ' + (e.message || e));
+    var result = null;
+    logInfo('Error in expression: ' + example.example);
+    if (tracebackLines) {
+      logDebug('Traceback for error', e);
+      for (var i=0; i<tracebackLines.length; i++) {
+        logDebug(tracebackLines[i]);
       }
-      if (e instanceof Abort) {
-        throw e;
-      }
+    } else {
+      logDebug('Error:', e);
     }
-    if (typeof result != 'undefined'
-        && result !== null
-        && example.output) {
-      writeln(doctest.repr(result));
+    if (e instanceof Abort) {
+      throw e;
     }
-  } finally {
-    this.capturer.stopCaptureLog();
+  }
+  if (typeof result != 'undefined'
+      && result !== null
+      && example.output) {
+    writeln(doctest.repr(result));
   }
 };
 
@@ -515,6 +511,7 @@ if (typeof Abort == 'undefined') {
 
 doctest.JSRunner.prototype.finishRun = function(example) {
   this.capturer.stopCapture();
+  this.capturer.stopCaptureLog();
   var success = this.checkResult(this.capturer.output, example.output);
   if (success) {
     this.reporter.reportSuccess(example, this.capturer.output);
@@ -522,12 +519,12 @@ doctest.JSRunner.prototype.finishRun = function(example) {
     this.reporter.reportFailure(example, this.capturer.output);
     logDebug('Failure: '+doctest.repr(example.output)
              +' != '+doctest.repr(this.capturer.output));
+    if (this.capturer.capturedLog) {
+      this.reporter.reportLog(example, this.capturer.capturedLog);
+    }
     if (location.href.search(/abort/) != -1) {
       doctest.Abort('abort on first failure');
     }
-  }
-  if (this.capturer.capturedLog) {
-    this.reporter.reportLog(example, this.capturer.capturedLog);
   }
   if (console.groupEnd) {
     console.groupEnd();
@@ -672,6 +669,9 @@ doctest.OutputCapturer.prototype.captureLog = function () {
       }
       for (var i=0; i<arguments.length; i++) {
         var text = arguments[i];
+        if (i) {
+          self.capturedLog += ' ';
+        }
         if (typeof text == 'string') {
           self.capturedLog += text;
         } else {
@@ -1528,3 +1528,20 @@ if (window.addEventListener) {
     window.attachEvent('onload', docTestOnLoad);
 }
 
+// FIXME: maybe this should be set more carefully just during the tests?
+window.onerror = function (message, filename, lineno) {
+  var m = message;
+  if (filename || lineno) {
+    m += ' (';
+    if (filename) {
+      m += filename;
+      if (lineno) {
+        m += ':' + lineno;
+      }
+    } else {
+      m += 'line ' + lineno;
+    }
+    m += ')';
+  }
+  writeln('Error: ' + m);
+};
