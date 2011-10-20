@@ -83,6 +83,9 @@ doctest.Context.prototype.run = function (parserIndex) {
   }
   logInfo('Testing example ' + (parserIndex+1) + ' of '
            + this.testSuite.parsers.length);
+  if (console.group) {
+    console.group();
+  }
   var runNext = function () {
     self.run(parserIndex+1);
   };
@@ -283,6 +286,14 @@ doctest.Reporter.prototype.reportFailure = function (example, output) {
   }
 };
 
+doctest.Reporter.prototype.reportLog = function (example, output) {
+  this.write('<span class="doctest-console">Console output:</span>\n');
+  this.write('<span class="doctest-console">' + this.formatOutput(output) + '</span>');
+  if (this.hook.reportLog) {
+    this.hook.reportLog(example, output);
+  }
+};
+
 doctest.Reporter.prototype.finish = function () {
   this.writeln((this.success+this.failure)
                + ' tests in ' + this.elements + ' items.');
@@ -452,29 +463,34 @@ doctest.logTraceback = function (e, skipFrames) {
 doctest.JSRunner.prototype.run = function (example) {
   this.capturer = new doctest.OutputCapturer();
   this.capturer.capture();
+  this.capturer.captureLog();
   try {
-    var result = doctest.eval(example.example);
-  } catch (e) {
-    var tracebackLines = doctest.formatTraceback(e);
-    writeln('Error: ' + (e.message || e));
-    var result = null;
-    logInfo('Error in expression: ' + example.example);
-    if (tracebackLines) {
-      logDebug('Traceback for error', e);
-      for (var i=0; i<tracebackLines.length; i++) {
-        logDebug(tracebackLines[i]);
+    try {
+      var result = doctest.eval(example.example);
+    } catch (e) {
+      var tracebackLines = doctest.formatTraceback(e);
+      writeln('Error: ' + (e.message || e));
+      var result = null;
+      logInfo('Error in expression: ' + example.example);
+      if (tracebackLines) {
+        logDebug('Traceback for error', e);
+        for (var i=0; i<tracebackLines.length; i++) {
+          logDebug(tracebackLines[i]);
+        }
+      } else {
+        logDebug('Error:', e);
       }
-    } else {
-      logDebug('Error:', e);
+      if (e instanceof Abort) {
+        throw e;
+      }
     }
-    if (e instanceof Abort) {
-      throw e;
+    if (typeof result != 'undefined'
+        && result !== null
+        && example.output) {
+      writeln(doctest.repr(result));
     }
-  }
-  if (typeof result != 'undefined'
-      && result !== null
-      && example.output) {
-    writeln(doctest.repr(result));
+  } finally {
+    this.capturer.stopCaptureLog();
   }
 };
 
@@ -494,7 +510,7 @@ doctest.Abort.prototype.toString = function () {
 };
 
 if (typeof Abort == 'undefined') {
-  Abort = doctest.Abort;
+  var Abort = doctest.Abort;
 }
 
 doctest.JSRunner.prototype.finishRun = function(example) {
@@ -509,6 +525,12 @@ doctest.JSRunner.prototype.finishRun = function(example) {
     if (location.href.search(/abort/) != -1) {
       doctest.Abort('abort on first failure');
     }
+  }
+  if (this.capturer.capturedLog) {
+    this.reporter.reportLog(example, this.capturer.capturedLog);
+  }
+  if (console.groupEnd) {
+    console.groupEnd();
   }
 };
 
@@ -528,7 +550,6 @@ doctest.JSRunner.prototype.checkResult = function (got, expected) {
   expected = expected.replace(/^[ \t]+/gm, "\\s*");
   expected = expected.replace(/[ \t]+/g, " +");
   expected = expected.replace(/\n/g, '\\n');
-  console.log(expected);
   var re = new RegExp(expected);
   var result = got.search(re) != -1;
   if (! result) {
@@ -536,8 +557,14 @@ doctest.JSRunner.prototype.checkResult = function (got, expected) {
       // If it's only one line it's not worth showing this
       var check = this.showCheckDifference(got, expected);
       logWarn('Mismatch of output (line-by-line comparison follows)');
+      if (console.group) {
+        console.group();
+      }
       for (var i=0; i<check.length; i++) {
         logInfo(check[i]);
+      }
+      if (console.groupEnd) {
+        console.groupEnd();
       }
     }
   }
@@ -615,6 +642,8 @@ doctest.OutputCapturer = function () {
     throw('you forgot new!');
   }
   this.output = '';
+  this.capturedLog = '';
+  this.logGrouped = false;
 };
 
 doctest._output = null;
@@ -625,6 +654,51 @@ doctest.OutputCapturer.prototype.capture = function () {
 
 doctest.OutputCapturer.prototype.stopCapture = function () {
   doctest._output = null;
+};
+
+doctest.OutputCapturer.prototype.captureLog = function () {
+  // Reset variables just in case:
+  this.stopCaptureLog();
+  var self = this;
+  function logFactory(levelMessage, oldLog) {
+    var func = function () {
+      if (console.group && (! this.logGrouped)) {
+        this.logGrouped = true;
+        console.group('Output from example:');
+      }
+      oldLog.apply(console, arguments);
+      if (levelMessage) {
+        self.capturedLog += levelMessage;
+      }
+      for (var i=0; i<arguments.length; i++) {
+        var text = arguments[i];
+        if (typeof text == 'string') {
+          self.capturedLog += text;
+        } else {
+          self.capturedLog += repr(text);
+        }
+      }
+      self.capturedLog += '\n';
+    };
+    func.origFunction = oldLog;
+    return func;
+  };
+  console.log = logFactory(null, console.log);
+  console.warn = logFactory('WARN: ', console.warn);
+  console.error = logFactory('ERROR: ', console.error);
+  console.info = logFactory(null, console.info);
+};
+
+doctest.OutputCapturer.prototype.stopCaptureLog = function () {
+  if (this.logGrouped) {
+    console.groupEnd();
+  }
+  var names = ['log', 'warn', 'error', 'info'];
+  for (var i=0; i<names.length; i++) {
+    if (console[names[i]] && console[names[i]].origFunction) {
+      console[names[i]] = console[names[i]].origFunction;
+    }
+  }
 };
 
 doctest.OutputCapturer.prototype.write = function (text) {
@@ -655,7 +729,7 @@ doctest.writeln = function () {
 };
 
 if (typeof writeln == 'undefined') {
-  writeln = doctest.writeln;
+  var writeln = doctest.writeln;
 }
 
 doctest.write = function (text) {
@@ -667,7 +741,7 @@ doctest.write = function (text) {
 };
 
 if (typeof write == 'undefined') {
-  write = doctest.write;
+  var write = doctest.write;
 }
 
 doctest._waitCond = null;
@@ -698,7 +772,7 @@ doctest.assert = function (expr, statement) {
 };
 
 if (typeof assert == 'undefined') {
-  assert = doctest.assert;
+  var assert = doctest.assert;
 }
 
 doctest.getText = function (el) {
@@ -1122,23 +1196,33 @@ doctest.extendDefault = function (obj, extendWith) {
 };
 
 if (typeof repr == 'undefined') {
-    repr = doctest.repr;
+    var repr = doctest.repr;
 }
 
 doctest._consoleFunc = function (attr) {
   var result;
+  var func;
   if (window.console !== undefined
       && window.console[attr] !== undefined) {
-    if (typeof console[attr].apply === 'function') {
+    func = window.console[attr];
+    if (func.origFunction) {
+      // Override the console capturing
+      func = func.origFunction;
+    }
+    if (typeof func.apply === 'function') {
       result = function() {
-        console[attr].apply(console, arguments);
+        func.apply(console, arguments);
       };
     } else {
-      result = console[attr];
+      result = func;
     }
   } else if (window.console !== undefined && console.log) {
+    func = console.log;
+    if (func.origFunction) {
+      func = func.origFunction;
+    }
     result = function () {
-      console.log.apply(console, arguments);
+      func.apply(console, arguments);
     };
   } else {
     result = function () {
@@ -1149,19 +1233,19 @@ doctest._consoleFunc = function (attr) {
 };
 
 if (typeof log == 'undefined') {
-  log = doctest._consoleFunc('log');
+  var log = doctest._consoleFunc('log');
 }
 
 if (typeof logDebug == 'undefined') {
-  logDebug = doctest._consoleFunc('debug');
+  var logDebug = doctest._consoleFunc('debug');
 }
 
 if (typeof logInfo == 'undefined') {
-  logInfo = doctest._consoleFunc('info');
+  var logInfo = doctest._consoleFunc('info');
 }
 
 if (typeof logWarn == 'undefined') {
-  logWarn = doctest._consoleFunc('warn');
+  var logWarn = doctest._consoleFunc('warn');
 }
 
 doctest.eval = function () {
@@ -1396,7 +1480,7 @@ doctest._argsToArray = function (args) {
   return array;
 };
 
-Spy = doctest.Spy;
+var Spy = doctest.Spy;
 
 doctest.spies = {};
 

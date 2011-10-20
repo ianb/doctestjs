@@ -29,6 +29,10 @@ pre.output {
   font-weight: bold;
 }
 
+.doctest-console {
+  color: #060;
+}
+
 a.doctest-failure-link {
   text-decoration: none;
 }
