@@ -1412,7 +1412,12 @@ doctest.Spy = function (name, options, extraOptions) {
       return s + ':never called';
     }
     s += '(';
-    for (var i=0; i<self.args.length; i++) {
+    // This eliminates trailing undefined arguments:
+    var length = self.args.length;
+    while (length && self.args[length-1] === undefined) {
+      length--;
+    }
+    for (var i=0; i<length; i++) {
       if (i) {
         s += ', ';
       }
