@@ -195,7 +195,7 @@ ignore a portion of the test by using <code>...</code> in the output.
 All the matching is strictly textual.  Note even errors can be matched
 this way (maybe unintentionally).</div>
 
-<div><b><code>?</code>:</b> this is like <code>...</code>, but it only
+<div><b><code>?</code>: (question mark)</b> this is like <code>...</code>, but it only
 matches one word (letters, numbers, <code>_</code>, and <code>.</code>).
 This is so you can do something like <code>{attr: ?}</code> and avoid
 matching <code>{attr: value, attr2: value}</code>.  It doesn't match
@@ -238,6 +238,13 @@ might be helpful anyway.  If you install <a
 href="https://addons.mozilla.org/en-US/firefox/addon/1843">Firebug</a>
 or use Chrome's developer console, the traceback will be in the
 console.</div>
+
+<div>You can also use <code>console.log()</code> liberally.  In
+addition to showing up in the console, this activity is captured on a
+per-statement basis, and displayed next to failing tests (generally in
+purple).  This makes it easier to focus just on the log messages that
+tell you about what went wrong, ignoring all the messages about what
+went right.</div>
 
 <h3>Test Page Structure</h3>
 
@@ -322,6 +329,23 @@ considered a failure.  You can pass a second argument with a timeout,
 or set <code>doctest.defaultTimeout</code> to change the value of that
 timeout.</p>
 
+<div>The <code>Spy</code> object makes this particularly easy.  You can
+generally test callback-oriented code very nicely like:
+
+<pre class="doctest">
+$ function doRequest(callback) {
+>   // imagine we use XMLHttpRequest
+>   setTimeout(function () {callback('data');}, 1);
+> }
+$ doRequest(Spy('doRequest.response', {wait: true}));
+doRequest.response('data')
+</pre>
+
+A Spy is kind of a mock object that tracks when it is called (and any
+time it is called it writes out the call info).  You can also save it
+in a variable, inspect the arguments, etc, as described in the section
+later on.</div>
+
 <h3>Halting Further Tests</h3>
 
 <div>The tests are run in order, even if one fails.  In some cases this
@@ -329,11 +353,17 @@ is tedious, such as a test that requires the server to be present --
 everything will of course fail, but nothing really means anything.
 </div>
 
-<div>If you use <code>throw Abort('reason')</code> then all further
-tests will be skipped.  This can also be thrown in callbacks.  Don't
-even instantiate this class if you don't want to stop the tests;
-simply instantiating it is enough (because it's hard to actually
-catch exceptions in callbacks).</div>
+<div>If you use <code>throw Abort('reason')</code> (or simply call
+<code>Abort('reason')</code>) then all further tests will be skipped.
+This can also be thrown in callbacks.  Don't even instantiate this
+class if you don't want to stop the tests; simply instantiating it is
+enough (because it's hard to actually catch exceptions in
+callbacks).</div>
+
+<div>If you only want to halt one <em>section</em> of tests (one
+<code>&lt;pre&gt;</code> element) you can use
+<code>AbortSection()</code>.  This can be useful for skipping tests in
+some environments.</div>
 
 <h3>Spy/Mock</h3>
 
@@ -585,12 +615,32 @@ this object in place immediately (via
   involved.  Or... with env.js and a custom reporter?  Or simply a
   text-based parser? </li>
 
+  <li>Implement a mode that works in a pure-JS file, that then fills
+  in an HTML report.  I imagine something like:
+
+  <pre>
+writeln('hey you');
+/* =>
+hey you
+*/
+</pre>
+
+  Only <code>writeln</code> (or <code>print</code>?) would be
+  supported.  Output would only go in comments.</li>
+
   <li>Experiment with driving an iframe using doctests, for site
   functional/integration testing.</li>
 
   <li>Handle the unstable nature of anchor links to specific failures:
   these should either be stable (link everything upfront?) or
   have some fallback.</li>
+
+  <li>Do something so the screen doesn't scroll around annoyingly
+  during tests as text is added to the page.  Maybe a fixed-height
+  scrolling reporter?</li>
+
+  <li>Document <code>doctest.params</code>.  And organize this
+  document better.</li>
 
 </ol>
 

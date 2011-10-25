@@ -7,6 +7,9 @@ li {
 code {
   color: #006;
 }
+div, p {
+  margin-bottom: 1em;
+}
 
 h3, h4, h5, h6 {
   border-bottom: 2px solid #000;

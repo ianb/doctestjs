@@ -370,6 +370,14 @@ doctest.JSRunner.prototype.runParsed = function (parsed, index, finishedCallback
       logWarn('Abort() called');
       return;
     }
+    if (doctest._AbortSectionCalled) {
+      // FIXME: again more visible
+      logWarn('AbortSection() called');
+      if (finishedCallback) {
+        finishedCallback();
+      }
+      return;
+    }
     self.runParsed(parsed, index+1, finishedCallback);
   };
   if (doctest._waitCond !== null) {
@@ -479,7 +487,7 @@ doctest.JSRunner.prototype.run = function (example) {
     } else {
       logDebug('Error:', e);
     }
-    if (e instanceof Abort) {
+    if (e instanceof doctest.Abort || e instanceof doctest.AbortSection) {
       throw e;
     }
   }
@@ -491,10 +499,11 @@ doctest.JSRunner.prototype.run = function (example) {
 };
 
 doctest._AbortCalled = false;
+doctest._AbortSectionCalled = false;
 
 doctest.Abort = function (message) {
   if (this === window) {
-    return new Abort(message);
+    return new doctest.Abort(message);
   }
   this.message = message;
   // We register this so Abort can be raised in an async call:
@@ -505,8 +514,25 @@ doctest.Abort.prototype.toString = function () {
   return this.message;
 };
 
+doctest.AbortSection = function (message) {
+  if (this === window) {
+    return new doctest.AbortSection(message);
+  }
+  this.message = message;
+  // Again register the call:
+  doctest._AbortSectionCalled = true;
+};
+
+doctest.AbortSection.prototype.toString = function () {
+  return this.message;
+};
+
 if (typeof Abort == 'undefined') {
   var Abort = doctest.Abort;
+}
+
+if (typeof AbortSection == 'undefined') {
+  var AbortSection = doctest.AbortSection;
 }
 
 doctest.JSRunner.prototype.finishRun = function(example) {
@@ -1485,13 +1511,44 @@ doctest._argsToArray = function (args) {
   return array;
 };
 
-var Spy = doctest.Spy;
+if (typeof Spy === 'undefined') {
+  var Spy = doctest.Spy;
+}
 
 doctest.spies = {};
 
 doctest.defaultTimeout = 2000;
 
 doctest.defaultSpyOptions = {writes: true};
+
+doctest.params = {};
+
+(function (params) {
+  var url = location.href + '';
+  if (url.indexOf('?') == -1) {
+    return;
+  }
+  var qs = url.substr(url.indexOf('?')+1);
+  var parts = qs.split('&');
+  for (var i=0; i<parts.length; i++) {
+    if (parts[i].indexOf('=') == -1) {
+      var name = decodeURIComponent(parts[i]);
+      var value = null;
+    } else {
+      var name = decodeURIComponent(parts[i].substr(0, parts[i].indexOf('=')));
+      var value = decodeURIComponent(parts[i].substr(parts[i].indexOf('=')+1));
+    }
+    if (params.hasOwnProperty(name)) {
+      if (params[name] === null || typeof params[name] == 'string') {
+        params[name] = [params[name], value];
+      } else {
+        params[name].push(value);
+      }
+    } else {
+      params[name] = value;
+    }
+  }
+})(doctest.params);
 
 var docTestOnLoad = function () {
   var auto = false;
