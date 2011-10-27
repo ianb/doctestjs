@@ -373,6 +373,7 @@ doctest.JSRunner.prototype.runParsed = function (parsed, index, finishedCallback
     if (doctest._AbortSectionCalled) {
       // FIXME: again more visible
       logWarn('AbortSection() called');
+      doctest._AbortSectionCalled = false;
       if (finishedCallback) {
         finishedCallback();
       }
