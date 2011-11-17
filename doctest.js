@@ -443,7 +443,7 @@ doctest.formatTraceback = function (e, skipFrames) {
       var parts = stack[i].split('@');
       var context = parts[0];
       parts = parts[1].split(':');
-      var filename = parts[parts.length-2].split('/');
+      var filename = parts.length >= 2 ? parts[parts.length-2].split('/') : '';
       filename = filename[filename.length-1];
       var lineno = parts[parts.length-1];
       context = context.replace('\\n', '\n');
