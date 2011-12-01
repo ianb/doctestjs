@@ -1526,6 +1526,9 @@ doctest.params = {};
 
 (function (params) {
   var url = location.href + '';
+  if (url.indexOf('#') != -1) {
+    url = url.substr(0, url.indexOf('#'));
+  }
   if (url.indexOf('?') == -1) {
     return;
   }
