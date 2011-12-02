@@ -560,8 +560,8 @@ doctest.JSRunner.prototype.finishRun = function(example) {
 
 doctest.JSRunner.prototype.checkResult = function (got, expected) {
   // Make sure trailing whitespace doesn't matter:
-  got = got.replace(/ +\n/, '\n');
-  expected = expected.replace(/ +\n/, '\n');
+  got = got.replace(/ +$/m, '');
+  expected = expected.replace(/ +$/m, '');
   got = got.replace(/[ \n\r]*$/, '') + '\n';
   expected = expected.replace(/[ \n\r]*$/, '') + '\n';
   if (expected == '...\n') {
@@ -747,10 +747,10 @@ doctest.genID = function (prefix) {
 
 doctest.writeln = function () {
   for (var i=0; i<arguments.length; i++) {
-    write(arguments[i]);
     if (i) {
       write(' ');
     }
+    write(arguments[i]);
   }
   write('\n');
 };
@@ -1499,7 +1499,11 @@ doctest.Spy = function (name, options, extraOptions) {
   }
   doctest.spies[name] = self;
   if (options.wait) {
-    self.wait();
+    if (typeof options.wait == 'number') {
+      self.wait(options.wait);
+    } else {
+      self.wait();
+    }
   }
   return self;
 };
