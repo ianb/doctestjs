@@ -917,8 +917,7 @@ doctest._sortedKeys = function (obj) {
   var keys = [];
   for (var i in obj) {
     // FIXME: should I use hasOwnProperty?
-    if (typeof obj.prototype == 'undefined'
-        || obj[i] !== obj.prototype[i]) {
+    if (obj.hasOwnProperty(i)) {
       keys.push(i);
     }
   }
