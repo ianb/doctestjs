@@ -605,7 +605,7 @@ doctest.JSRunner.prototype.showCheckDifference = function (got, expectedRegex) {
   expectedRegex = expectedRegex.substr(1, expectedRegex.length-2);
   // Technically this might not be right, but this is all a heuristic:
   expectedRegex = expectedRegex.replace(/\(\?:\.\|\[\\r\\n\]\)\*/g, '...');
-  var expectedLines = expectedRegex.split('\\n');
+  var expectedLines = expectedRegex.split(/\n(?!\])/);
   for (var i=0; i<expectedLines.length; i++) {
     expectedLines[i] = expectedLines[i].replace(/\.\.\./g, '(?:.|[\r\n])*');
   }
