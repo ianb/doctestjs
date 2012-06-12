@@ -1,7 +1,7 @@
 /*
 
 Javascript doctest runner
-Copyright 2006-2010 Ian Bicking
+Copyright 2006-2012 Ian Bicking
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the MIT License.
@@ -16,7 +16,7 @@ function doctest(verbosity/*default=0*/, elements/*optional*/,
   if (elements) {
     if (typeof elements == 'string') {
       // Treat it as an id
-      elements = [document.getElementById(elementId)];
+      elements = [document.getElementById(elements)];
     }
     if (! elements.length) {
       throw('No elements');
@@ -31,6 +31,9 @@ function doctest(verbosity/*default=0*/, elements/*optional*/,
   suite.run();
 }
 
+// This is used to detect when a function is called without "new":
+doctest._noThisObject = (function () {return this;})();
+
 doctest.runDoctest = function (el, reporter) {
   logDebug('Testing element', el);
   reporter.startElement(el);
@@ -43,7 +46,7 @@ doctest.runDoctest = function (el, reporter) {
 };
 
 doctest.TestSuite = function (els, reporter) {
-  if (this === window) {
+  if (this === doctest._noThisObject) {
     throw('you forgot new!');
   }
   this.els = els;
@@ -66,7 +69,7 @@ doctest.TestSuite.prototype.run = function (ctx) {
 
 // FIXME: should this just be part of TestSuite?
 doctest.Context = function (testSuite) {
-  if (this === window) {
+  if (this === doctest._noThisObject) {
     throw('You forgot new!');
   }
   this.testSuite = testSuite;
@@ -93,7 +96,7 @@ doctest.Context.prototype.run = function (parserIndex) {
 };
 
 doctest.Parser = function (el) {
-  if (this === window) {
+  if (this === doctest._noThisObject) {
     throw('you forgot new!');
   }
   if (! el) {
@@ -152,7 +155,7 @@ doctest.Parser = function (el) {
 doctest._allExamples = {};
 
 doctest.Example = function (example, output) {
-  if (this === window) {
+  if (this === doctest._noThisObject) {
     throw('you forgot new!');
   }
   this.example = example.join('\n');
@@ -214,7 +217,7 @@ doctest.Example.prototype.markExample = function (name, detail) {
 };
 
 doctest.Reporter = function (container, verbosity, /*optional*/ hook) {
-  if (this === window) {
+  if (this === doctest._noThisObject) {
     throw('you forgot new!');
   }
   if (! container) {
@@ -342,7 +345,7 @@ doctest.Reporter.prototype.formatOutput = function (text) {
 };
 
 doctest.JSRunner = function (reporter) {
-  if (this === window) {
+  if (this === doctest._noThisObject) {
     throw('you forgot new!');
   }
   this.reporter = reporter;
@@ -503,7 +506,7 @@ doctest._AbortCalled = false;
 doctest._AbortSectionCalled = false;
 
 doctest.Abort = function (message) {
-  if (this === window) {
+  if (this === doctest._noThisObject) {
     return new doctest.Abort(message);
   }
   this.message = message;
@@ -516,7 +519,7 @@ doctest.Abort.prototype.toString = function () {
 };
 
 doctest.AbortSection = function (message) {
-  if (this === window) {
+  if (this === doctest._noThisObject) {
     return new doctest.AbortSection(message);
   }
   this.message = message;
@@ -662,7 +665,7 @@ RegExp.escape = function (text) {
 };
 
 doctest.OutputCapturer = function () {
-  if (this === window) {
+  if (this === doctest._noThisObject) {
     throw('you forgot new!');
   }
   this.output = '';
