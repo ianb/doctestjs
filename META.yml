@@ -1,9 +1,0 @@
---- #YAML:1.0
-name: doctest
-version: 0.9
-author:
-  - Ian Bicking <ianb@colorstudy.com>
-abstract:
-  Test javascript with simple scripts and examples, embedded
-  into an HTML page.
-license: MIT
