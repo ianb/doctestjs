@@ -1,6 +1,9 @@
 doctest.js
 ==========
 
+For a more complete description please [read the main
+page](http://ianb.github.com/doctestjs/).
+
 ``doctest.js`` is a test runner for Javascript, inspired by Python's
 `doctest <http://docs.python.org/library/doctest.html>`_.
 
@@ -10,7 +13,7 @@ can have using a browser-based console).  An example of a test (note
 ``$`` is uesd as a prompt, ``>`` as a continuation prompt)::
 
     $ // You can do really simple tests...
-    $ 3 * 4;
+    $ print(3 * 4);
     12
     $ // Or more complicated tests...
     $ var complete = false;
@@ -24,19 +27,25 @@ can have using a browser-based console).  An example of a test (note
     >   }
     > });
     $ wait(function () {return complete;});
-    $ savedResult;
+    $ print(savedResult);
     {value1: "something", value2: true}
 
 Also included is a simple mock object.  An example of using it::
 
-    $ success = Spy('success', {writes: true});
     $ $.ajax({
     >   url: "/test",
     >   dataType: "json",
-    >   success: success.func
+    >   success: Spy('success', {wait: true})
     > });
-    $ success.wait();
     success({value1: "something", value2: true})
+
+You can also write the Javascript with comments to show the expected output::
+
+    function factorial(n) {
+      return n == 1 ? 1 : n * factorial(n-1);
+    }
+    print(factorial(3))
+    /* => 6 */
 
 For more and better (and live) examples see `the doctest.js website
 <http://ianb.github.com/doctestjs/>`_.
