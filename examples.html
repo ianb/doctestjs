@@ -1,5 +1,7 @@
+<!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <title>Doctest.js: examples</title>
 <script type="text/javascript" src="doctest.js"></script>
 <script type="text/javascript" src=".resources/toc.js"></script>
@@ -37,10 +39,7 @@ alt="Fork me on GitHub" /></a>
 
 <div id="contents"></div>
 
-<div>
-  <button onclick="doctest()" type="button">Test all</button>
-  <pre id="doctestOutput"></pre>
-</div>
+<div id="doctest-output"></div>
 
 <h3>Web Service</h3>
 
@@ -61,27 +60,14 @@ alt="Fork me on GitHub" /></a>
 <pre class="doctest">
 $ apiLocation = 'http://ws.geonames.org/';
 $ function query(endpoint, q) {
->   var success = Spy('geonames ' + endpoint + ' query success');
->   success.applies = function (result) {
->     x = result;
->     logDebug(result);
->     writeln(repr(result));
->   };
->   var error = Spy('geonames ' + endpoint + ' query failure');
->   error.applies = function (result) {
->     writeln('Error: ' + repr(result));
->   };
 >   var url = apiLocation + endpoint;
 >   jQuery.ajax({
 >     url: url,
 >     data: q,
 >     dataType: "json",
->     success: success.func,
->     error: error.func
+>     success: Spy('success', {wait: true, ignoreThis: true}),
+>     error: Spy('error')
 >   });
->   wait(function () {
->     return error.called || success.called;
->   }, 5000);
 > }
 </pre>
 
@@ -115,7 +101,11 @@ $ function query(endpoint, q) {
 
 <pre class="doctest">
 $ query('postalCodeSearchJSON', {postalcode: 9011, maxRows: 5});
-{postalCodes: [{...}]}
+success({
+  postalCodes: [
+    {...}
+  ]
+}, ...)
 </pre>
 
 </div>
