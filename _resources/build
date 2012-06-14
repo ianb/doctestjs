@@ -12,5 +12,5 @@ files="index.html examples/examples.html examples/examples-2.html"
 
 python _resources/retemplate.py $files
 for file in $files
-    sed -i 's/\.resources/_resources/g' $file
+    sed -i '' 's/\.resources/_resources/g' $file
 done
