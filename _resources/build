@@ -2,8 +2,6 @@
 
 set -ex
 
-cd "$(dirname $BASH_SOURCE)"
-cd ..
 mv .resources _resources
 
 echo "Updating files with template..."
