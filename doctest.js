@@ -76,6 +76,8 @@ doctest.Context = function (testSuite) {
   this.runner = null;
 };
 
+old_log = console.log
+
 doctest.Context.prototype.run = function (parserIndex) {
   var self = this;
   parserIndex = parserIndex || 0;
@@ -92,6 +94,7 @@ doctest.Context.prototype.run = function (parserIndex) {
   var runNext = function () {
     self.run(parserIndex+1);
   };
+  logError('Running', this.testSuite.parsers, parserIndex);
   this.runner.runParsed(this.testSuite.parsers[parserIndex], 0, runNext);
 };
 
@@ -158,8 +161,14 @@ doctest.Example = function (example, output) {
   if (this === doctest._noThisObject) {
     throw('you forgot new!');
   }
-  this.example = example.join('\n');
-  this.output = output.join('\n');
+  if (typeof example != "string") {
+    example = example.join('\n');
+  }
+  if (typeof output != "string") {
+    output = output.join('\n');
+  }
+  this.example = example;
+  this.output = output;
   this.htmlID = null;
   this.detailID = null;
 };
@@ -1277,6 +1286,10 @@ if (typeof logWarn == 'undefined') {
   var logWarn = doctest._consoleFunc('warn');
 }
 
+if (typeof logError == 'undefined') {
+  var logError = doctest._consoleFunc('error');
+}
+
 doctest.eval = function () {
   return window.eval.apply(window, arguments);
 };
@@ -1616,4 +1629,79 @@ window.onerror = function (message, filename, lineno) {
     m += ')';
   }
   writeln('Error: ' + m);
+};
+
+/* Stand-along JS file parsing: */
+
+doctest.FileParser = function (contents) {
+  if (this == doctest._noThisObject) {
+    throw 'you forgot new!';
+  }
+  this.examples = [];
+  if (typeof esprima == "undefined") {
+    throw 'You must install or include esprima.js';
+  }
+  // FIXME: this is bad, copied from Parser
+  var newHTML = document.createElement('span');
+  document.body.appendChild(newHTML);
+  var examplesID = doctest.genID('example-set');
+
+  var ast = esprima.parse(contents, {
+    range: true,
+    comment: true
+  });
+  // FIXME: raise proper error if the ast is wrong
+  var pos = 0;
+  var parts = [];
+  for (var i=0; i<ast.comments.length; i++) {
+    var comment = ast.comments[i];
+    if (comment.type != 'Block') {
+      continue;
+    }
+    if (comment.value.search(/^\s*=>/) == -1) {
+      // Not a comment we care about
+      continue;
+    }
+    var start = comment.range[0];
+    var end = comment.range[1];
+    var example_lines = contents.substr(pos, start-pos);
+    var output_lines = comment.value.replace(/^\s*=>/, '');
+    var ex = new doctest.Example(example_lines, output_lines);
+    this.examples.push(ex);
+    newHTML.appendChild(ex.createSpan());
+  }
+  var last = contents.substr(pos, contents.length-pos);
+  if (last.search(/[^\s]/ != -1)) {
+    this.examples.push(new doctest.Example(last, ''));
+  }
+  doctest._allExamples[examplesID] = this.examples;
+};
+
+doctest.FileParser.fromUrl = function (url, callback) {
+  var req = new XMLHttpRequest();
+  req.open('GET', url);
+  req.onreadystatechange = function () {
+    if (req.readyState != 4) {
+      return;
+    }
+    if (req.status != 200) {
+      console.log('ERROR: could not fetch ' + url + ' status: ' + req.status);
+      callback();
+      return;
+    }
+    var parser = new doctest.FileParser(req.responseText);
+    callback(parser);
+  };
+  req.send();
+};
+
+doctest.FileParser.run = function (url, verbosity, outputId) {
+  logDebug('Loading URL', url);
+  var output = document.getElementById(outputId || 'doctestOutput');
+  var reporter = new doctest.Reporter(output, verbosity || 0);
+  var suite = new doctest.TestSuite([], reporter);
+  doctest.FileParser.fromUrl(url, function (parser) {
+    suite.parsers.push(parser);
+    suite.run();
+  });
 };
