@@ -660,7 +660,6 @@ Runner.prototype = {
         console.endGroup();
       }
     }
-<<<<<<< HEAD
     this.logGrouped = false;
     if (typeof window != 'undefined') {
       window.write = undefined;
@@ -672,53 +671,6 @@ Runner.prototype = {
       window.console.warn = window.console.warn.origFunc;
       window.console.error = window.console.error.origFunc;
       window.console.info = window.console.info.origFunc;
-=======
-  }
-  return result;
-};
-
-doctest.JSRunner.prototype.showCheckDifference = function (got, expectedRegex) {
-  if (expectedRegex.charAt(0) != '^') {
-    throw 'Unexpected regex, no leading ^';
-  }
-  if (expectedRegex.charAt(expectedRegex.length-1) != '$') {
-    throw 'Unexpected regex, no trailing $';
-  }
-  expectedRegex = expectedRegex.substr(1, expectedRegex.length-2);
-  // Technically this might not be right, but this is all a heuristic:
-  expectedRegex = expectedRegex.replace(/\(\?:\.\|\[\\r\\n\]\)\*/g, '...');
-  var expectedLines = expectedRegex.split(/\n(?!\])/);
-  for (var i=0; i<expectedLines.length; i++) {
-    expectedLines[i] = expectedLines[i].replace(/\.\.\./g, '(?:.|[\r\n])*');
-  }
-  var gotLines = got.split('\n');
-  var result = [];
-  var totalLines = expectedLines.length > gotLines.length ?
-    expectedLines.length : gotLines.length;
-  function displayExpectedLine(line) {
-    return line;
-    line = line.replace(/\[a-zA-Z0-9_.\]\+/g, '?');
-    line = line.replace(/ \+/g, ' ');
-    line = line.replace(/\(\?:\.\|\[\\r\\n\]\)\*/g, '...');
-    // FIXME: also unescape values? e.g., * became \*
-    return line;
-  }
-  for (var i=0; i<totalLines; i++) {
-    if (i >= expectedLines.length) {
-      result.push('got extra line: ' + repr(gotLines[i]));
-      continue;
-    } else if (i >= gotLines.length) {
-      result.push('expected extra line: ' + displayExpectedLine(expectedLines[i]));
-      continue;
-    }
-    var gotLine = gotLines[i];
-    try {
-      var expectRE = new RegExp('^' + expectedLines[i] + '$');
-    } catch (e) {
-      result.push('regex match failed: ' + repr(gotLine) + ' ('
-            + expectedLines[i] + ')');
-      continue;
->>>>>>> 9e1504590cd5a97a77e9e62a15c78ba36d8f6e01
     }
   },
 
