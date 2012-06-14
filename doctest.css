@@ -1,73 +1,90 @@
+/* Basic styling: */
+
+body {
+    font-family: sans-serif;
+}
+
 pre {
-  overflow: auto;
+    padding: 0.3em;
 }
 
-pre.doctest {
-  border-left: 3px solid #99f;
-  padding-left: 1em;
+/* Test block formatting: */
+
+pre.doctest, pre.commenttest {
+    border: 1px solid #999;
+    border-radius: 4px;
 }
 
-pre.output {
-  border-left: 3px solid #9f9;
-  padding-left: 1em;
+pre.doctest.doctest-some-failure, pre.commenttest.doctest-some-failure {
+    border: 1px solid #f00;
 }
 
-.doctest-example-prompt {
-  color: #333;
+/* Individual example formatting: */
+
+.doctest-example:target {
+    border-left: 4px solid #f00;
+    padding-left: 4px;
 }
 
-.doctest-success {
-  color: #060;
+.doctest-example {
 }
 
-.doctest-failure {
-  color: #600;
+.doctest-example.doctest-success {
+    color: #060;
 }
 
-.doctest-example-detail {
-  color: #060;
-  font-weight: bold;
+.doctest-example.doctest-failure {
+    color: #900;
 }
 
-.doctest-console {
-  color: #606;
+.doctest-example .doctest-actual-output {
+    color: #066;
+    /*padding-left: 1em;*/
+}
+
+.doctest-example.doctest-failure .doctest-output {
+    padding-left: 1em;
+}
+
+.doctest-example .doctest-description {
+    color: #000;
+    font-weight: bold;
+}
+
+.doctest-example .doctest-console {
+    color: #009;
+    padding-left: 1em;
+}
+
+/* Reporter formatting: */
+
+#doctest-success-count.doctest-nonzero {
+    color: #0f0;
+}
+
+#doctest-failure-count.doctest-nonzero {
+    color: #f00;
+}
+
+.doctest-report-table th {
+    font-weight: normal;
+    text-align: left;
+}
+
+.doctest-report-table td {
+    padding: 0 1em;
 }
 
 a.doctest-failure-link {
-  text-decoration: none;
+    color: #00f;
+    text-decoration: none;
+    padding: 0 1em 0 0;
+}
+
+a.doctest-failure-link:visited {
+    color: #00f;
 }
 
 a.doctest-failure-link:hover {
-  text-decoration: underline;
-}
-
-.doctest-example:target {
-  border-left: 3px solid #f00;
-}
-
-div.test:target {
-  border: 3px solid #ff0;
-}
-
-div.test {
-  border: 1px solid #999;
-  margin-bottom: 1em;
-}
-
-div.test .test-id {
-  position: relative;
-  float: right;
-  background-color: #000;
-  color: #bbb;
-  padding: 3px;
-}
-
-div.test .test-id a:link,
-div.test .test-id a:visited {
-  color: #bbb;
-  text-decoration: none;
-}
-
-div.test .test-id a:hover {
-  text-decoration: underline;
+    text-decoration: underline;
 }

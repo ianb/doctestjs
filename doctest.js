@@ -1,667 +1,1126 @@
-/*
+(function (exports) {
 
-Javascript doctest runner
-Copyright 2006-2012 Ian Bicking
-
-This program is free software; you can redistribute it and/or modify it under
-the terms of the MIT License.
-
-*/
-
-
-function doctest(verbosity/*default=0*/, elements/*optional*/,
-                 outputId/*optional*/) {
-  var output = document.getElementById(outputId || 'doctestOutput');
-  var reporter = new doctest.Reporter(output, verbosity || 0);
-  if (elements) {
-    if (typeof elements == 'string') {
-      // Treat it as an id
-      elements = [document.getElementById(elements)];
-    }
-    if (! elements.length) {
-      throw('No elements');
-    }
-    var suite = new doctest.TestSuite(elements, reporter);
-  } else if (doctest.defaultElements) {
-    var els = doctest.defaultElements;
+var globalObject;
+if (typeof window == 'undefined') {
+  if (typeof global == 'undefined') {
+    globalObject = (function () {return this;})();
   } else {
-    var els = doctest.getElementsByTagAndClassName('pre', 'doctest');
-    var suite = new doctest.TestSuite(els, reporter);
+    globalObject = global;
   }
-  suite.run();
+} else {
+  globalObject = window;
 }
 
-// This is used to detect when a function is called without "new":
-doctest._noThisObject = (function () {return this;})();
+var doc;
+if (typeof document != 'undefined') {
+  doc = document;
+} else {
+  doc = null;
+}
 
-doctest.runDoctest = function (el, reporter) {
-  logDebug('Testing element', el);
-  reporter.startElement(el);
-  if (el === null) {
-    throw('runDoctest() with a null element');
-  }
-  var parsed = new doctest.Parser(el);
-  var runner = new doctest.JSRunner(reporter);
-  runner.runParsed(parsed);
+exports.setDocument = function (newDocument) {
+  doc = newDocument;
 };
 
-doctest.TestSuite = function (els, reporter) {
-  if (this === doctest._noThisObject) {
-    throw('you forgot new!');
+var Example = exports.Example = function (runner, expr, expected, attrs) {
+  this.runner = runner;
+  this.expr = expr;
+  if (typeof expected != "string") {
+    throw "Bad value for expected: " + expected;
   }
-  this.els = els;
-  this.parsers = [];
-  for (var i=0; i<els.length; i++) {
-    this.parsers.push(new doctest.Parser(els[i]));
-  }
-  this.reporter = reporter;
-};
-
-doctest.TestSuite.prototype.run = function (ctx) {
-  if (! ctx) {
-    ctx = new doctest.Context(this);
-  }
-  if (! ctx.runner ) {
-    ctx.runner = new doctest.JSRunner(this.reporter);
-  }
-  return ctx.run();
-};
-
-// FIXME: should this just be part of TestSuite?
-doctest.Context = function (testSuite) {
-  if (this === doctest._noThisObject) {
-    throw('You forgot new!');
-  }
-  this.testSuite = testSuite;
-  this.runner = null;
-};
-
-old_log = console.log
-
-doctest.Context.prototype.run = function (parserIndex) {
-  var self = this;
-  parserIndex = parserIndex || 0;
-  if (parserIndex >= this.testSuite.parsers.length) {
-    this.runner.reporter.finish();
-    logInfo('All examples from all sections tested');
-    return;
-  }
-  logInfo('Testing example ' + (parserIndex+1) + ' of '
-           + this.testSuite.parsers.length);
-  if (console.group) {
-    console.group();
-  }
-  var runNext = function () {
-    self.run(parserIndex+1);
-  };
-  logError('Running', this.testSuite.parsers, parserIndex);
-  this.runner.runParsed(this.testSuite.parsers[parserIndex], 0, runNext);
-};
-
-doctest.Parser = function (el) {
-  if (this === doctest._noThisObject) {
-    throw('you forgot new!');
-  }
-  if (! el) {
-    throw('Bad call to doctest.Parser');
-  }
-  if (el.getAttribute('parsed-id')) {
-    var examplesID = el.getAttribute('parsed-id');
-    if (doctest._allExamples[examplesID]) {
-      this.examples = doctest._allExamples[examplesID];
-      return;
-    }
-  }
-  var newHTML = document.createElement('span');
-  newHTML.className = 'doctest-example-set';
-  var examplesID = doctest.genID('example-set');
-  newHTML.setAttribute('id', examplesID);
-  el.setAttribute('parsed-id', examplesID);
-  var text = doctest.getText(el);
-  var lines = text.split(/(?:\r\n|\r|\n)/);
-  this.examples = [];
-  var example_lines = [];
-  var output_lines = [];
-  for (var i=0; i<lines.length; i++) {
-    var line = lines[i];
-    if (/^[$]/.test(line)) {
-      if (example_lines.length) {
-        var ex = new doctest.Example(example_lines, output_lines);
-        this.examples.push(ex);
-        newHTML.appendChild(ex.createSpan());
+  this.expected = expected;
+  if (attrs) {
+    for (var i in attrs) {
+      if (attrs.hasOwnProperty(i)) {
+        this[i] = attrs[i];
       }
-      example_lines = [];
-      output_lines = [];
-      line = line.substr(1).replace(/ *$/, '').replace(/^ /, '');
-      example_lines.push(line);
-    } else if (/^>/.test(line)) {
-      if (! example_lines.length) {
-        throw('Bad example: '+doctest.repr(line)+'\n'
-              +'> line not preceded by $');
-      }
-      line = line.substr(1).replace(/ *$/, '').replace(/^ /, '');
-      example_lines.push(line);
-    } else {
-      output_lines.push(line);
     }
   }
-  if (example_lines.length) {
-    var ex = new doctest.Example(example_lines, output_lines);
-    this.examples.push(ex);
-    newHTML.appendChild(ex.createSpan());
-  }
-  el.innerHTML = '';
-  el.appendChild(newHTML);
-  doctest._allExamples[examplesID] = this.examples;
 };
 
-doctest._allExamples = {};
-
-doctest.Example = function (example, output) {
-  if (this === doctest._noThisObject) {
-    throw('you forgot new!');
-  }
-  if (typeof example != "string") {
-    example = example.join('\n');
-  }
-  if (typeof output != "string") {
-    output = output.join('\n');
-  }
-  this.example = example;
-  this.output = output;
-  this.htmlID = null;
-  this.detailID = null;
-};
-
-doctest.Example.prototype.createSpan = function () {
-  var id = doctest.genID('example');
-  var span = document.createElement('span');
-  span.className = 'doctest-example';
-  span.setAttribute('id', id);
-  this.htmlID = id;
-  var exampleSpan = document.createElement('span');
-  exampleSpan.className = 'doctest-example-code';
-  var exampleLines = this.example.split(/\n/);
-  for (var i=0; i<exampleLines.length; i++) {
-    var promptSpan = document.createElement('span');
-    promptSpan.className = 'doctest-example-prompt';
-    promptSpan.innerHTML = i == 0 ? '$ ' : '&gt; ';
-    exampleSpan.appendChild(promptSpan);
-    var lineSpan = document.createElement('span');
-    lineSpan.className = 'doctest-example-code-line';
-    lineSpan.appendChild(document.createTextNode(doctest.rstrip(exampleLines[i])));
-    exampleSpan.appendChild(lineSpan);
-    exampleSpan.appendChild(document.createTextNode('\n'));
-  }
-  span.appendChild(exampleSpan);
-  var outputSpan = document.createElement('span');
-  outputSpan.className = 'doctest-example-output';
-  outputSpan.appendChild(document.createTextNode(this.output));
-  span.appendChild(outputSpan);
-  span.appendChild(document.createTextNode('\n'));
-  return span;
-};
-
-doctest.Example.prototype.markExample = function (name, detail) {
-  if (! this.htmlID) {
-    return;
-  }
-  if (this.detailID) {
-    var el = document.getElementById(this.detailID);
-    el.parentNode.removeChild(el);
-    this.detailID = null;
-  }
-  var span = document.getElementById(this.htmlID);
-  span.className = span.className.replace(/ doctest-failure/, '')
-                   .replace(/ doctest-success/, '')
-                   + ' ' + name;
-  if (detail) {
-    this.detailID = doctest.genID('doctest-example-detail');
-    var detailSpan = document.createElement('span');
-    detailSpan.className = 'doctest-example-detail';
-    detailSpan.setAttribute('id', this.detailID);
-    detailSpan.appendChild(document.createTextNode(detail));
-    span.appendChild(detailSpan);
-  }
-};
-
-doctest.Reporter = function (container, verbosity, /*optional*/ hook) {
-  if (this === doctest._noThisObject) {
-    throw('you forgot new!');
-  }
-  if (! container) {
-    throw('No container passed to doctest.Reporter');
-  }
-  if ((! hook) && window.doctestReporterHook) {
-    this.hook = window.doctestReporterHook;
-  } else {
-    this.hook = {};
-  }
-  this.container = container;
-  this.verbosity = verbosity;
-  this.success = 0;
-  this.failure = 0;
-  this.elements = 0;
-  if (this.hook.init) {
-    this.hook.init(this, verbosity);
-  }
-};
-
-doctest.Reporter.prototype.startElement = function (el) {
-  this.elements += 1;
-  if (this.hook.startElement) {
-    this.hook.startElement(el);
-  }
-  logDebug('Adding element', el);
-};
-
-doctest.Reporter.prototype.reportSuccess = function (example, output) {
-  if (this.verbosity > 0) {
-    if (this.verbosity > 1) {
-      this.write('Trying:\n');
-      this.write(this.formatOutput(example.example));
-      this.write('Expecting:\n');
-      this.write(this.formatOutput(example.output));
-      this.write('ok\n');
-    } else {
-      this.writeln(example.example + ' ... passed!');
-    }
-  }
-  this.success += 1;
-  if ((example.output.indexOf('...') >= 0
-       || example.output.indexOf('?') >= 0)
-      && output) {
-    example.markExample('doctest-success', 'Output:\n' + output);
-  } else {
-    example.markExample('doctest-success');
-  }
-  if (this.hook.reportSuccess) {
-    this.hook.reportSuccess(example, output);
-  }
-};
-
-doctest.Reporter.prototype.reportFailure = function (example, output) {
-  this.write('Failed example:\n');
-  this.write('<span style="color: #00f"><a href="#'
-             + example.htmlID
-             + '" class="doctest-failure-link" title="Go to example">'
-             + this.formatOutput(example.example)
-             +'</a></span>');
-  this.write('Expected:\n');
-  this.write(this.formatOutput(example.output));
-  this.write('Got:\n');
-  this.write(this.formatOutput(output));
-  this.failure += 1;
-  example.markExample('doctest-failure', 'Actual output:\n' + output);
-  if (this.hook.reportFailure) {
-    this.hook.reportFailure(example, output);
-  }
-};
-
-doctest.Reporter.prototype.reportLog = function (example, output) {
-  this.write('<span class="doctest-console">Console output:</span>\n');
-  this.write('<span class="doctest-console">' + this.formatOutput(output) + '</span>');
-  if (this.hook.reportLog) {
-    this.hook.reportLog(example, output);
-  }
-};
-
-doctest.Reporter.prototype.finish = function () {
-  this.writeln((this.success+this.failure)
-               + ' tests in ' + this.elements + ' items.');
-  if (this.failure) {
-    var color = '#f00';
-  } else {
-    var color = '#0f0';
-  }
-  this.writeln('<span class="passed">' + this.success + '</span> tests of '
-               + '<span class="total">' + (this.success+this.failure) + '</span> passed, '
-               + '<span class="failed" style="color: '+color+'">'
-               + this.failure + '</span> failed.');
-  if (this.hook.finish) {
-    this.hook.finish(this);
-  }
-};
-
-doctest.Reporter.prototype.writeln = function (text) {
-  this.write(text + '\n');
-};
-
-doctest.Reporter.prototype.write = function (text) {
-  var html = text;
-  var leading = /^[ ]*/.exec(html)[0];
-  html = html.substr(leading.length);
-  for (var i=0; i<leading.length; i++) {
-    text = String.fromCharCode(160)+html;
-  }
-  html = html.replace(/\n/g, '<br>');
-  this.container.innerHTML += html;
-  if (this.hook.write) {
-    this.hook.write(text);
-  }
-};
-
-doctest.Reporter.prototype.formatOutput = function (text) {
-  if (! text) {
-    return '    <span style="color: #999">(nothing)</span>\n';
-  }
-  var lines = text.split(/\n/);
-  var output = '';
-  for (var i=0; i<lines.length; i++) {
-    output += doctest.escapeSpaces('    ' + doctest.escapeHTML(lines[i]))+'\n';
-  }
-  return output;
-};
-
-doctest.JSRunner = function (reporter) {
-  if (this === doctest._noThisObject) {
-    throw('you forgot new!');
-  }
-  this.reporter = reporter;
-};
-
-doctest.JSRunner.prototype.runParsed = function (parsed, index, finishedCallback) {
-  var self = this;
-  index = index || 0;
-  if (index >= parsed.examples.length) {
-    if (finishedCallback) {
-      finishedCallback();
-    }
-    return;
-  }
-  var example = parsed.examples[index];
-  if (typeof example == 'undefined') {
-    throw('Undefined example (' + (index+1) + ' of ' + parsed.examples.length + ')');
-  }
-  doctest._waitCond = null;
-  this.run(example);
-  var finishThisRun = function () {
-    self.finishRun(example);
-    if (doctest._AbortCalled) {
-      // FIXME: I need to find a way to make this more visible:
-      logWarn('Abort() called');
-      return;
-    }
-    if (doctest._AbortSectionCalled) {
-      // FIXME: again more visible
-      logWarn('AbortSection() called');
-      doctest._AbortSectionCalled = false;
-      if (finishedCallback) {
-        finishedCallback();
-      }
-      return;
-    }
-    self.runParsed(parsed, index+1, finishedCallback);
-  };
-  if (doctest._waitCond !== null) {
-    if (typeof doctest._waitCond == 'number') {
-      var condition = null;
-      var time = doctest._waitCond;
-      var maxTime = null;
-    } else {
-      var condition = doctest._waitCond;
-      // FIXME: shouldn't be hard-coded
-      var time = 100;
-      var maxTime = doctest._waitTimeout || doctest.defaultTimeout;
-    }
-    var start = (new Date()).getTime();
-    var timeoutFunc = function () {
-      if (condition === null
-          || condition()) {
-        finishThisRun();
-      } else {
-        // Condition not met, try again soon...
-        if ((new Date()).getTime() - start > maxTime) {
-          // Time has run out
-          var msg = 'Error: wait(' + repr(condition) + ') has timed out';
-          writeln(msg);
-          logDebug(msg);
-          logDebug('Timeout after ' + ((new Date()).getTime() - start)
-                   + ' milliseconds');
-          finishThisRun();
-          return;
-        }
-        setTimeout(timeoutFunc, time);
-      }
-    };
-    setTimeout(timeoutFunc, time);
-  } else {
-    finishThisRun();
-  }
-};
-
-doctest.formatTraceback = function (e, skipFrames) {
-  skipFrames = skipFrames || 0;
-  var lines = [];
-  if (typeof e == 'undefined' || !e) {
-    var caughtErr = null;
+Example.prototype = {
+  run: function () {
+    this.output = [];
+    this.consoleOutput = [];
+    var globs = this.runner.evalInit();
     try {
-      (null).foo;
-    } catch (caughtErr) {
-      e = caughtErr;
-    }
-    skipFrames++;
-  }
-  if (e.stack) {
-    var stack = e.stack.split('\n');
-    for (var i=skipFrames; i<stack.length; i++) {
-      if (stack[i] == '@:0' || ! stack[i]) {
-        continue;
+      this.result = this.runner.eval(this.expr, globs);
+    } catch (e) {
+      if (e['doctest.abort']) {
+        return;
       }
-      if (stack[i].indexOf('@') == -1) {
-        lines.push(stack[i]);
-        continue;
-      }
-      var parts = stack[i].split('@');
-      var context = parts[0];
-      parts = parts[1].split(':');
-      var filename = parts.length >= 2 ? parts[parts.length-2].split('/') : '';
-      filename = filename[filename.length-1];
-      var lineno = parts[parts.length-1];
-      context = context.replace('\\n', '\n');
-      if (context != '' && filename != 'doctest.js') {
-        lines.push('  ' + context + ' -> ' + filename + ':' + lineno);
+      this.write('Error: ' + e + '\n');
+      // FIXME: doesn't format nicely:
+      if (e.stack) {
+        console.log('Exception Stack:');
+        console.log(e.stack);
       }
     }
-  }
-  if (lines.length) {
-    return lines;
-  } else {
-    return null;
+  },
+  check: function () {
+    var output = this.output.join('\n');
+    // FIXME: consider using this.result
+    this.runner.matcher.match(this, output, this.expected);
+  },
+  write: function (text) {
+    this.output.push(text);
+  },
+  writeConsole: function (message) {
+    this.consoleOutput.push(message);
+  },
+  timeout: function (passed) {
+    this.runner.reporter.logFailure(this, "Error: wait timed out after " + passed + " milliseconds");
+  },
+  textSummary: function () {
+    return strip(strip(this.expr).substr(0, 20)) + '...';
   }
 };
 
-doctest.logTraceback = function (e, skipFrames) {
-  var tracebackLines = doctest.formatTraceback(e, skipFrames);
-  if (! tracebackLines) {
-    return;
-  }
-  for (var i=0; i<tracebackLines.length; i++) {
-    logDebug(tracebackLines[i]);
+var Matcher = exports.Matcher = function (runner) {
+  this.runner = runner;
+};
+
+Matcher.prototype = {
+  match: function (example, got, expected) {
+    var cleanGot = this.clean(got);
+    var cleanExpected = this.clean(expected);
+    var re = RegExpEscape(cleanExpected);
+    re = '^' + re + '$';
+    re = re.replace(/\\\.\\\.\\\./g, "[\\S\\s\\r\\n]*");
+    re = re.replace(/\\\?/g, "[a-zA-Z0-9_.]+");
+    re = re.replace(/[ \t]+/g, " +");
+    re = re.replace(/["']/g, "['\"]");
+    re = new RegExp(re);
+    if (cleanGot.search(re) != -1) {
+      this.runner.reporter.logSuccess(example, got);
+      return;
+    }
+    this.runner.reporter.logFailure(example, got);
+  },
+  clean: function (s) {
+    var lines = s.split(/(?:\r\n|\r|\n)/);
+    var result = [];
+    for (var i=0; i<lines.length; i++) {
+      var line = strip(lines[i]);
+      if (line) {
+        result.push(line);
+      }
+    }
+    return result.join('\n');
   }
 };
 
-doctest.JSRunner.prototype.run = function (example) {
-  this.capturer = new doctest.OutputCapturer();
-  this.capturer.capture();
-  this.capturer.captureLog();
-  try {
-    var result = doctest.eval(example.example);
-  } catch (e) {
-    var tracebackLines = doctest.formatTraceback(e);
-    writeln('Error: ' + (e.message || e));
-    var result = null;
-    logInfo('Error in expression: ' + example.example);
-    if (tracebackLines) {
-      logDebug('Traceback for error', e);
-      for (var i=0; i<tracebackLines.length; i++) {
-        logDebug(tracebackLines[i]);
-      }
+var HTMLReporter = exports.HTMLReporter = function (runner, containerEl) {
+  this.runner = runner;
+  if (! containerEl) {
+    if (doc.getElementById('doctest-output')) {
+      containerEl = 'doctest-output';
     } else {
-      logDebug('Error:', e);
-    }
-    if (e instanceof doctest.Abort || e instanceof doctest.AbortSection) {
-      throw e;
+      containerEl = makeElement('div');
+      doc.body.insertBefore(containerEl, doc.body.childNodes[0]);
     }
   }
-  if (typeof result != 'undefined'
-      && result !== null
-      && example.output) {
-    writeln(doctest.repr(result));
+  if (typeof containerEl == 'string') {
+    containerEl = doc.getElementById(containerEl);
   }
+  addClass(containerEl, 'doctest-report');
+  this.containerEl = containerEl;
+  this.containerEl.innerHTML = (
+    '<table class="doctest-report-table">' +
+    '<tr><th>Passed:</th>' +
+    '<td id="doctest-success-count">0</td></tr>' +
+    '<tr><th>Failures:</th>' +
+    '<td id="doctest-failure-count">0</td>' +
+    '<td><button id="doctest-reload">reload/retest</button></td></tr>' +
+    '<tr><th></th>' +
+    '<td colspan=2 id="doctest-failure-links"></td></tr>' +
+    '</table>'
+    );
+  this.successEl = doc.getElementById('doctest-success-count');
+  this.failureEl = doc.getElementById('doctest-failure-count');
+  this.failureLinksEl = doc.getElementById('doctest-failure-links');
+  var button = doc.getElementById('doctest-reload');
+  // Sometimes this is sticky:
+  button.disabled = false;
+  button.addEventListener('click', function (ev) {
+    button.innerHTML = 'reloading...';
+    button.disabled = true;
+    location.reload();
+  }, false);
 };
 
-doctest._AbortCalled = false;
-doctest._AbortSectionCalled = false;
+HTMLReporter.prototype = {
 
-doctest.Abort = function (message) {
-  if (this === doctest._noThisObject) {
-    return new doctest.Abort(message);
-  }
-  this.message = message;
-  // We register this so Abort can be raised in an async call:
-  doctest._AbortCalled = true;
-};
-
-doctest.Abort.prototype.toString = function () {
-  return this.message;
-};
-
-doctest.AbortSection = function (message) {
-  if (this === doctest._noThisObject) {
-    return new doctest.AbortSection(message);
-  }
-  this.message = message;
-  // Again register the call:
-  doctest._AbortSectionCalled = true;
-};
-
-doctest.AbortSection.prototype.toString = function () {
-  return this.message;
-};
-
-if (typeof Abort == 'undefined') {
-  var Abort = doctest.Abort;
-}
-
-if (typeof AbortSection == 'undefined') {
-  var AbortSection = doctest.AbortSection;
-}
-
-doctest.JSRunner.prototype.finishRun = function(example) {
-  this.capturer.stopCapture();
-  this.capturer.stopCaptureLog();
-  var success = this.checkResult(this.capturer.output, example.output);
-  if (success) {
-    this.reporter.reportSuccess(example, this.capturer.output);
-  } else {
-    this.reporter.reportFailure(example, this.capturer.output);
-    logDebug('Failure: '+doctest.repr(example.output)
-             +' != '+doctest.repr(this.capturer.output));
-    if (this.capturer.capturedLog) {
-      this.reporter.reportLog(example, this.capturer.capturedLog);
-    }
-    if (location.href.search(/abort/) != -1) {
-      doctest.Abort('abort on first failure');
-    }
-  }
-  if (console.groupEnd) {
-    console.groupEnd();
-  }
-};
-
-doctest.JSRunner.prototype.checkResult = function (got, expected) {
-  // Make sure trailing whitespace doesn't matter:
-  got = got.replace(/ +$/m, '');
-  expected = expected.replace(/ +$/m, '');
-  got = got.replace(/[ \n\r]*$/, '') + '\n';
-  expected = expected.replace(/[ \n\r]*$/, '') + '\n';
-  if (expected == '...\n') {
-    return true;
-  }
-  expected = RegExp.escape(expected);
-  // Note: .* doesn't match newlines, [^] doesn't work on IE
-  expected = '^' + expected.replace(/\\\.\\\.\\\./g, "[\\S\\s\\r\\n]*") + '$';
-  expected = expected.replace(/\\\?/g, "[a-zA-Z0-9_.]+");
-  expected = expected.replace(/^[ \t]+/gm, "\\s*");
-  expected = expected.replace(/[ \t]+/g, " +");
-  expected = expected.replace(/\n/g, '\\n');
-  var re = new RegExp(expected);
-  var result = got.search(re) != -1;
-  if (! result) {
-    if (doctest.strip(got).split('\n').length > 1) {
-      // If it's only one line it's not worth showing this
-      var check = this.showCheckDifference(got, expected);
-      logWarn('Mismatch of output (line-by-line comparison follows)');
-      if (console.group) {
-        console.group();
+  logSuccess: function (example, got) {
+    var num = parseInt(this.successEl.innerHTML, 10);
+    num++;
+    this.successEl.innerHTML = num+'';
+    addClass(this.successEl, 'doctest-nonzero');
+    if (example.htmlSpan) {
+      addClass(example.htmlSpan, 'doctest-success');
+      if (example.expected.indexOf('...') != -1
+          || example.expected.indexOf('?') != -1) {
+        this.addExampleNote(example, 'Output:', 'doctest-actual-output', got);
       }
-      for (var i=0; i<check.length; i++) {
-        logInfo(check[i]);
+    }
+    this.showConsoleOutput(example, false);
+    this.runner._hook('reportSuccess', example, got);
+  },
+
+  logFailure: function (example, got) {
+    var num = parseInt(this.failureEl.innerHTML, 10);
+    num++;
+    this.failureEl.innerHTML = num+'';
+    addClass(this.failureEl, 'doctest-nonzero');
+    if (example.htmlSpan) {
+      addClass(example.htmlSpan, 'doctest-failure');
+      var showGot = got || '(nothing output)';
+      var expectedSpan = makeElement('span', {className: 'doctest-description'}, ['Expected:\n']);
+      example.htmlSpan.insertBefore(expectedSpan, example.htmlSpan.querySelector('.doctest-output'));
+      if (! example.expected) {
+        example.htmlSpan.querySelector('.doctest-output').innerHTML = '(nothing expected)\n';
       }
+      this.addExampleNote(example, 'Got:', 'doctest-actual-output', showGot);
+    }
+    if (example.blockEl) {
+      addClass(example.blockEl, 'doctest-some-failure');
+    }
+    if (example.htmlID) {
+      var anchor = makeElement('a', {href: '#' + example.htmlID, className: 'doctest-failure-link'}, [example.textSummary()]);
+      this.failureLinksEl.appendChild(anchor);
+    }
+    this.showConsoleOutput(example, true);
+    this.runner._hook('reportFailure', example, got);
+  },
+
+  showConsoleOutput: function (example, error) {
+    if (! example.consoleOutput.length) {
+      return;
+    }
+    if (! example.htmlSpan) {
+      return;
+    }
+    var text = example.consoleOutput.join('\n');
+    this.addExampleNote(example, 'Console:', 'doctest-console', text);
+  },
+
+  addExampleNote: function (example, description, className, text) {
+    if (! example.htmlSpan) {
+      return;
+    }
+    example.htmlSpan.appendChild(makeElement('span', {className: 'doctest-description'}, [description + '\n']));
+    example.htmlSpan.appendChild(makeElement('span', {className: className}, [text + '\n']));
+  }
+};
+
+var ConsoleReporter = exports.ConsoleReporter = function (runner) {
+  this.runner = runner;
+};
+
+ConsoleReporter.prototype = {
+  logSuccess: function (example, got) {
+    console.log('Passed:', example.textSummary());
+  },
+  logFailure: function (example, got) {
+    console.log('Failed:', example.expr);
+    console.log('Expected:');
+    console.log(example.expected);
+    console.log('Got:');
+    console.log(got);
+  }
+};
+
+
+var repr = exports.repr = function (o, indentString, maxLen) {
+  /* Taken from MochiKit, with an addition to print objects */
+  var reprMaker = new repr.ReprClass(indentString, maxLen);
+  return reprMaker.repr(o);
+};
+
+repr.ReprClass = function (indentString, maxLen) {
+  this.indentString = indentString || '';
+  if (maxLen === undefined) {
+    maxLen = this.defaultMaxLen;
+  }
+  this.maxLen = maxLen;
+  this.tracker = [];
+};
+
+repr.ReprClass.prototype = {
+  defaultMaxLen: 120,
+
+  repr: function (o, indentString) {
+    if (indentString === undefined) {
+      indentString = this.indentString;
+    }
+    if (this.seenObject(o)) {
+      return '..recursive..';
+    }
+    if (o === undefined) {
+      return 'undefined';
+    } else if (o === null) {
+      return "null";
+    }
+    try {
+      if (typeof o.__repr__ == 'function') {
+        return o.__repr__(indentString, this.maxLen);
+      } else if (typeof o.repr == 'function' && o.repr != arguments.callee
+                 && o.repr != repr) {
+        return o.repr(indentString, this.maxLen);
+      }
+      for (var i=0; i<this.registry.length; i++) {
+        var item = this.registry[i];
+        if (item[0].call(this, o)) {
+          var func = item[1];
+          if (typeof func == "string") {
+            func = this[func];
+          }
+          return func.call(this, o, indentString);
+        }
+      }
+    } catch (e) {
+      // FIXME: unclear what purpose this serves:
+      if (typeof(o.NAME) == 'string' && (
+            o.toString == Function.prototype.toString ||
+            o.toString == Object.prototype.toString)) {
+        return o.NAME;
+      }
+    }
+    try {
+      var ostring = (o + "");
+      if (ostring == '[object Object]' || ostring == '[object]') {
+        ostring = this.objRepr(o, indentString);
+      }
+    } catch (e) {
+      return "[" + (typeof o) + "]";
+    }
+    if (typeof o == "function") {
+      var ostring = ostring.replace(/^\s+/, "").replace(/\s+/g, " ");
+      var idx = ostring.indexOf("{");
+      if (idx != -1) {
+        ostring = ostring.substr(o, idx) + "{...}";
+      }
+    }
+    return ostring;
+  },
+
+  seenObject: function (obj) {
+    if (typeof obj != 'object' || obj === null) {
+      return false;
+    }
+    for (var i=0; i<this.tracker.length; i++) {
+      if (this.tracker[i] === obj) {
+        return true;
+      }
+    }
+    this.tracker.push(obj);
+    return false;
+  },
+
+  seenPosition: function () {
+    return this.tracker.length-1;
+  },
+
+  popSeen: function (point) {
+    this.tracker.splice(point, this.tracker.length - point);
+  },
+
+  objRepr: function (obj, indentString) {
+    var seenPosition = this.seenPosition();
+    var ostring = '{';
+    var keys = sortedKeys(obj);
+    for (var i=0; i<keys.length; i++) {
+      if (ostring != '{') {
+        ostring += ', ';
+      }
+      ostring += this.keyRepr(keys[i]) + ': ' + this.repr(obj[keys[i]]);
+    }
+    ostring += '}';
+    if (ostring.length > (this.maxLen - indentString.length)) {
+      this.popSeen(seenPosition);
+      ostring = this.multilineObjRepr(obj, indentString);
+    }
+    this.popSeen(seenPosition);
+    return ostring;
+  },
+
+  multilineObjRepr: function (obj, indentString) {
+    var keys = sortedKeys(obj);
+    var ostring = '{\n';
+    for (var i=0; i<keys.length; i++) {
+      ostring += indentString + '  ' + this.keyRepr(keys[i]) + ': ';
+      ostring += this.repr(obj[keys[i]], indentString+'  ');
+      if (i != keys.length - 1) {
+        ostring += ',';
+      }
+      ostring += '\n';
+    }
+    ostring += indentString + '}';
+    return ostring;
+  },
+
+  keyRepr: function (key) {
+    if (key.search(/^[a-zA-Z_][a-zA-Z0-9_]*$/) === 0) {
+      return key;
+    } else {
+      return this.repr(key);
+    }
+  },
+
+  arrayRepr: function (obj, indentString) {
+    var seenPosition = this.seenPosition();
+    var s = "[";
+    for (var i=0; i<obj.length; i++) {
+      s += this.repr(obj[i], indentString, this.maxLen);
+      if (i != obj.length-1) {
+        s += ", ";
+      }
+    }
+    s += "]";
+    if (s.length > (this.maxLen + indentString.length)) {
+      this.popSeen(seenPosition);
+      s = this.multilineArrayRepr(obj, indentString);
+    }
+    this.popSeen(seenPosition);
+    return s;
+  },
+
+  multilineArrayRepr: function (obj, indentString) {
+    var s = "[\n";
+    for (var i=0; i<obj.length; i++) {
+      s += indentString + '  ' + this.repr(obj[i], indentString+'  ');
+      if (i != obj.length - 1) {
+        s += ',';
+      }
+      s += '\n';
+    }
+    s += indentString + ']';
+    return s;
+  },
+
+  xmlRepr: function (el, indentString) {
+    var i;
+    if (el.nodeType == el.DOCUMENT_NODE) {
+      return this.xmlRepr(el.childNodes[0], indentString);
+    }
+    var s = '<' + el.tagName;
+    var attrs = [];
+    if (el.attributes && el.attributes.length) {
+      for (i=0; i<el.attributes.length; i++) {
+        attrs.push(el.attributes[i].nodeName);
+      }
+      attrs.sort();
+      for (i=0; i<attrs.length; i++) {
+        s += ' ' + attrs[i] + '="';
+        var value = el.getAttribute(attrs[i]);
+        value = value.replace('&', '&amp;');
+        value = value.replace('"', '&quot;');
+        s += value;
+        s += '"';
+      }
+    }
+    if (! el.childNodes.length) {
+      s += ' />';
+      return s;
+    } else {
+      s += '>';
+    }
+    var hasNewline = false;
+    for (i=0; i<el.childNodes.length; i++) {
+      var el = el.childNodes[i];
+      if (el.nodeType == el.TEXT_NODE) {
+        s += strip(el.textContent);
+      } else {
+        if (! hasNewline) {
+          s += '\n' + indentString;
+          hasNewline = true;
+        }
+        s += '  ' + this.xmlRepr(el, indentString + '  ');
+        s += '\n' + indentString;
+      }
+    }
+    s += '</' + el.tagName + '>';
+    return s;
+  },
+
+  registry: [
+    [function (o) {
+       return typeof o == 'string';
+     },
+     function (o) {
+       o = '"' + o.replace(/([\"\\])/g, '\\$1') + '"';
+       o = o.replace(/[\f]/g, "\\f")
+       .replace(/[\b]/g, "\\b")
+       .replace(/[\n]/g, "\\n")
+       .replace(/[\t]/g, "\\t")
+       .replace(/[\r]/g, "\\r");
+       return o;
+     }
+    ],
+    [function (o) {
+       return typeof o == 'number';
+     },
+     function (o) {
+         return o + "";
+     }
+    ],
+    [function (o) {
+       return typeof o == 'object' && o.nodeType;
+     },
+     "xmlRepr"
+    ],
+    [function (o) {
+       var typ = typeof o;
+       if ((typ != 'object' && ! (typ == 'function' && typeof o.item == 'function')) ||
+           o === null ||
+           typeof o.length != 'number' ||
+           o.nodeType === 3) {
+           return false;
+       }
+       return true;
+     },
+     "arrayRepr"
+    ]
+  ]
+
+};
+
+var Runner = exports.Runner = function (options) {
+  this.examples = [];
+  options = options || {};
+  for (var i in options) {
+    if (options.hasOwnProperty(i)) {
+      if (this[i] === undefined) {
+        throw 'Unexpected option: ' + i;
+      }
+      this[i] = options[i];
+    }
+  }
+};
+
+Runner.prototype = {
+
+  init: function () {
+    if (this.matcher === null) {
+      this.matcher = this.makeMatcher();
+    }
+    if (this.reporter === null) {
+      this.reporter = this.makeReporter();
+    }
+    if (this.repr === null) {
+      this.repr = this.makeRepr();
+    }
+    this._hook('init', this);
+  },
+
+  run: function () {
+    this.init();
+    if (! this.examples.length) {
+      throw 'No examples have been added';
+    }
+    this._exampleIndex = 0;
+    this._runExample();
+  },
+
+  evalInit: function () {
+    var self = this;
+    this.logGrouped = false;
+    this._abortCalled = false;
+    var globs = {
+      write: this.write.bind(this),
+      writeln: this.writeln.bind(this),
+      wait: this.wait.bind(this),
+      Abort: this.Abort.bind(this),
+      repr: repr,
+      Spy: Spy
+    };
+    globs.print = globs.writeln;
+    var consoleOverwrites = {
+      log: this.logFactory(null, console.log),
+      warn: this.logFactory(null, console.warn),
+      error: this.logFactory(null, console.error),
+      info: this.logFactory(null, console.info)
+    };
+    if (typeof window == 'undefined') {
+      // Can't just overwrite the console object
+      globs.console = consoleOverwrites;
+      for (var i in console) {
+        if (console.hasOwnProperty(i) && (! globs.console.hasOwnProperty(i))) {
+          if (console[i].bind) {
+            globs.console[i] = console[i].bind(console);
+          } else {
+            globs.console[i] = console[i];
+          }
+        }
+      }
+      return globs;
+    } else {
+      extend(console, consoleOverwrites);
+      window.onerror = this.windowOnerror;
+      extend(window, globs);
+      return null;
+    }
+  },
+
+  write: function (text) {
+    this._currentExample.write(text);
+  },
+
+  writeln: function () {
+    for (var i=0; i<arguments.length; i++) {
+      if (i) {
+        this.write(' ');
+      }
+      if (typeof arguments[i] == "string") {
+        this.write(arguments[i]);
+      } else {
+        this.write(this.repr(arguments[i]));
+      }
+    }
+    this.write('\n');
+  },
+
+  wait: function (conditionOrTime, hardTimeout) {
+    // FIXME: should support a timeout even with a condition
+    if (conditionOrTime === undefined
+        || conditionOrTime === null) {
+      // same as wait-some-small-amount-of-time
+      conditionOrTime = 0;
+    }
+    this._waitCondition = conditionOrTime;
+    if (typeof conditionOrTime == "number") {
+      if (((! hardTimeout) && this._defaultWaitTimeout < conditionOrTime)
+          || hardTimeout < conditionOrTime) {
+        hardTimeout = conditionOrTime + 10;
+      }
+    }
+    this._waitTimeout = hardTimeout;
+    this._exampleWait = true;
+  },
+
+  // FIXME: maybe this should be set more carefully just during the tests?
+  windowOnerror: function (message, filename, lineno) {
+    var m = message;
+    if (filename || lineno) {
+      m += ' (';
+      if (filename) {
+        m += filename;
+        if (lineno) {
+          m += ':' + lineno;
+        }
+      } else {
+        m += 'line ' + lineno;
+      }
+      m += ')';
+    }
+    writeln('Error: ' + m);
+  },
+
+  logFactory: function (prefix, origFunc) {
+    var self = this;
+    var logFunc = origFunc || console.log.origFunc || console.log;;
+
+    var func = function () {
+      if (console.group && (! self.logGrouped)) {
+        self.logGrouped = true;
+        console.group('Output from example:');
+      }
+      logFunc.apply(console, arguments);
+      var s = prefix || '';
+      for (var i=0; i<arguments.length; i++) {
+        var text = arguments[i];
+        if (i) {
+          s += ' ';
+        }
+        if (typeof text == "string") {
+          s += text;
+        } else {
+          s += repr(text);
+        }
+      }
+      self._currentExample.writeConsole(s);
+    };
+    func.origFunc = origFunc;
+    return func;
+  },
+
+  Abort: function (message) {
+    this._abortCalled = message || 'aborted';
+    return {
+      "doctest.abort": true,
+      toString: function () {return 'Abort(' + message + ')';}
+    };
+  },
+
+  evalUninit: function () {
+    if (this.logGrouped) {
       if (console.groupEnd) {
         console.groupEnd();
+      } else if (console.endGroup) {
+        console.endGroup();
+      }
+    }
+    this.logGrouped = false;
+    if (typeof window != 'undefined') {
+      window.write = undefined;
+      window.writeln = undefined;
+      window.print = undefined;
+      window.wait = undefined;
+      window.onerror = undefined;
+      window.console.log = window.console.log.origFunc;
+      window.console.warn = window.console.warn.origFunc;
+      window.console.error = window.console.error.origFunc;
+      window.console.info = window.console.info.origFunc;
+    }
+  },
+
+  eval: function (expr, context) {
+    var e = eval;
+    if (context) {
+      if (typeof global != "undefined") {
+        extend(global, context);
+        var vm = require('vm');
+        vm.runInThisContext(expr);
+      } else {
+        with (context) {
+          var result = eval(expr);
+        }
+      }
+    } else {
+      var result = e(expr);
+    }
+    return result;
+  },
+
+  _runExample: function () {
+    if (this._abortCalled) {
+      return;
+    }
+    while (true) {
+      if (this._exampleIndex >= this.examples.length) {
+        this._finish();
+        break;
+      }
+      this._currentExample = this.examples[this._exampleIndex];
+      this._exampleIndex++;
+      this._currentExample.run();
+      if (this._exampleWait) {
+        this._runWait();
+        break;
+      }
+      if (this._abortCalled) {
+        console.log('Abort called: ' + this._abortCalled);
+      }
+      this.evalUninit();
+      this._currentExample.check();
+      this._currentExample = null;
+      if (this._abortCalled) {
+        break;
+      }
+    }
+  },
+
+  _runWait: function () {
+    var start = Date.now();
+    var waitTimeout = this._waitTimeout || this._defaultWaitTimeout;
+    this._waitTimeout = null;
+    var self = this;
+    function poll() {
+      var now = Date.now();
+      var cond = self._waitCondition;
+      if (typeof cond == "number") {
+        if (now - start >= cond) {
+          self._exampleWait = false;
+        }
+      } else if (cond) {
+        if (cond()) {
+          self._exampleWait = false;
+        }
+      }
+      if (self._exampleWait) {
+        if (now - start > waitTimeout) {
+          self._currentExample.timeout(now - start);
+          return;
+        }
+        setTimeout(poll, self._waitPollTime);
+        return;
+      }
+      self.evalUninit();
+      self._currentExample.check();
+      self._currentExample = null;
+      self._runExample();
+    }
+    // FIXME: instead of the poll time, cond could be used if it is a number
+    setTimeout(poll, this._waitPollTime);
+  },
+
+  _hook: function (method) {
+    if (typeof doctestReporterHook == "undefined") {
+      return null;
+    } else if (method && arguments.length > 1 && doctestReporterHook[method]) {
+      var args = argsToArray(arguments).slice(1);
+      return doctestReporterHook[method].apply(doctestReporterHook, args);
+    } else if (method) {
+      return doctestReporterHook[method];
+    } else {
+      return doctestReporterHook;
+    }
+  },
+
+  _finish: function () {
+    this._hook('finish', this);
+  },
+
+  _waitPollTime: 100,
+  _waitTimeout: null,
+  _waitCondition: null,
+  _defaultWaitTimeout: 5000,
+
+  /* Dependency Injection, yay! */
+  examples: null,
+  Example: Example,
+  exampleOptions: null,
+  makeExample: function (text, expected) {
+    return new this.Example(this, text, expected, this.exampleOptions);
+  },
+  matcher: null,
+  Matcher: Matcher,
+  matcherOptions: null,
+  makeMatcher: function () {
+    return new this.Matcher(this, this.matcherOptions);
+  },
+  reporter: null,
+  Reporter: HTMLReporter,
+  reporterOptions: null,
+  makeReporter: function () {
+    return new this.Reporter(this, this.reporterOptions);
+  },
+  repr: repr
+};
+
+var HTMLParser = exports.HTMLParser = function (runner, containerEl, selector) {
+  this.runner = runner;
+  containerEl = containerEl || doc.body;
+  if (typeof containerEl == 'string') {
+    containerEl = doc.getElementById(containerEl);
+  }
+  if (! containerEl) {
+    throw 'Bad/null/missing containerEl';
+  }
+  this.containerEl = containerEl;
+  this.selector = selector || 'pre.doctest, pre.commenttest';
+};
+
+HTMLParser.prototype = {
+  parse: function () {
+    var els = this.findEls();
+    for (var i=0; i<els.length; i++) {
+      this.parseEl(els[i]);
+    }
+  },
+
+  findEls: function () {
+    return this.containerEl.querySelectorAll(this.selector);
+  },
+
+  parseEl: function (el) {
+    if (hasClass(el, 'doctest')) {
+      var examples = this.parseDoctestEl(el);
+    } else if (hasClass(el, 'commenttest')) {
+      var examples = this.parseCommentEl(el);
+    } else {
+      throw 'Unknown element class/type';
+    }
+    var newChildren = [];
+    for (var i=0; i<examples.length; i++) {
+      var example = examples[i][0];
+      var output = examples[i][1];
+      var rawExample = examples[i][2];
+      var rawOutput = examples[i][3];
+      var ex = this.runner.makeExample(example, output);
+      this.runner.examples.push(ex);
+      ex.blockEl = el;
+      ex.htmlID = genID('example');
+      var span = makeElement('span', {id: ex.htmlID, className: 'doctest-example'}, [
+        makeElement('span', {className: 'doctest-expr'}, [rawExample + '\n']),
+            makeElement('span', {className: 'doctest-output'}, [rawOutput + '\n'])
+        ]);
+      ex.htmlSpan = span;
+      newChildren.push(span);
+    }
+    el.innerHTML = '';
+    for (var i=0; i<newChildren.length; i++) {
+      el.appendChild(newChildren[i]);
+    }
+  },
+
+  parseDoctestEl: function (el) {
+    var result = [];
+    var text = getElementText(el);
+    var lines = text.split(/(?:\r\n|\r|\n)/);
+    var exampleLines = [];
+    var rawExample = [];
+    var outputLines = [];
+    var rawOutput = [];
+    for (var i=0; i<lines.length; i++) {
+      var line = lines[i];
+      if (/^[$]/.test(line) || i==lines.length-1) {
+        if (exampleLines.length) {
+          result.push([
+            exampleLines.join('\n'), outputLines.join('\n'),
+            rawExample.join('\n'), rawOutput.join('\n')]);
+        }
+        exampleLines = [];
+        outputLines = [];
+        rawExample = [];
+        rawOutput = [];
+        rawExample.push(line);
+        line = line.replace(/^ *[$] ?/, '');
+        exampleLines.push(line);
+      } else if (/^>/.test(line)) {
+        if (! exampleLines.length) {
+          throw ('Bad example: ' + this.runner.repr(line) + '\n'
+            + '> line not preceded by $');
+        }
+        rawExample.push(line);
+        line = line.replace(/^ *> ?/, '');
+        exampleLines.push(line);
+      } else {
+        rawOutput.push(line);
+        outputLines.push(line);
+      }
+    }
+    return result;
+  },
+
+  parseCommentEl: function (el) {
+    if (typeof esprima == "undefined") {
+      if (typeof require != "undefined") {
+        esprima = require("./esprima/esprima.js");
+      } else {
+        throw 'You must install or include esprima.js';
+      }
+    }
+    var contents = getElementText(el);
+    var ast = esprima.parse(contents, {
+      range: true,
+      comment: true
+    });
+    var pos = 0;
+    var result = [];
+    for (var i=0; i<ast.comments.length; i++) {
+      var comment = ast.comments[i];
+      if (comment.type != 'Block') {
+        continue;
+      }
+      if (comment.value.search(/^\s*=>/) == -1) {
+        // Not a comment we care about
+        continue;
+      }
+      var start = comment.range[0];
+      var end = comment.range[1];
+      var example = contents.substr(pos, start-pos);
+      var output = comment.value.replace(/^\s*=> ?/, '');
+      result.push([example, output, example, '/*' + comment.value + '*/']);
+      pos = end;
+    }
+    var last = contents.substr(pos, contents.length-pos);
+    if (strip(last)) {
+      result.push([last, '', last, '']);
+    }
+    return result;
+  },
+
+  loadRemotes: function (callback) {
+    var els = this.findEls();
+    var pending = 0;
+    argsToArray(els).forEach(function (el) {
+      var href = el.getAttribute('href');
+      if (! href) {
+        return;
+      }
+      pending++;
+      var req = new XMLHttpRequest();
+      req.open('GET', href);
+      req.onreadystatechange = function () {
+        if (req.readyState != 4) {
+          return;
+        }
+        el.innerHTML = '';
+        if (req.status != 200) {
+          el.appendChild(doc.createTextNode('Error fetching ' + href + ' status: ' + req.status));
+        } else {
+          el.appendChild(doc.createTextNode(req.responseText));
+        }
+        pending--;
+        if (! pending) {
+          callback();
+        }
+      };
+      req.send();
+    });
+    if (! pending) {
+      callback();
+    }
+  }
+
+};
+
+var TextParser = exports.TextParser = function (runner, text) {
+  if (typeof esprima == "undefined") {
+    if (typeof require != "undefined") {
+      esprima = require("./esprima/esprima.js");
+    } else {
+      throw 'You must install or include esprima.js';
+    }
+  }
+  this.runner = runner;
+  this.text = text;
+};
+
+TextParser.fromFile = function (runner, filename) {
+  if (typeof filename != "string") {
+    throw "You did you give a filename for the second argument: " + filename;
+  }
+  if (typeof require == "undefined") {
+    throw "This method only works in Node, with the presence of require()";
+  }
+  var fs = require('fs');
+  var text = fs.readFileSync(filename, 'UTF-8');
+  return new TextParser(runner, text);
+};
+
+TextParser.prototype = {
+  parse: function () {
+    var ast = esprima.parse(this.text, {
+      range: true,
+      comment: true
+    });
+    // FIXME: check if text didn't parse
+    var pos = 0;
+    for (var i=0; i<ast.comments.length; i++) {
+      var comment = ast.comments[i];
+      if (comment.type != 'Block') {
+        continue;
+      }
+      if (comment.value.search(/^\s*=>/) == -1) {
+        // Not a comment we care about
+        continue;
+      }
+      var start = comment.range[0];
+      var end = comment.range[1];
+      var example = this.text.substr(pos, start-pos);
+      var output = comment.value.replace(/^\s*=>\s*/, '');
+      var ex = this.runner.makeExample(example, output);
+      this.runner.examples.push(ex);
+      pos = end;
+    }
+    var last = this.text.substr(pos, this.text.length-pos);
+    if (strip(last)) {
+      this.runner.examples.push(this.runner.makeExample(last, ''));
+    }
+  }
+};
+
+var strip = exports.strip = function (str) {
+  str = str + "";
+  return str.replace(/\s+$/, "").replace(/^\s+/, "");
+};
+
+var rstrip = exports.rstrip = function (str) {
+  str = str + "";
+  return str.replace(/\s+$/, "");
+};
+
+var argsToArray = exports.argToArray = function (args) {
+  var array = [];
+  for (var i=0; i<args.length; i++) {
+    array.push(args[i]);
+  }
+  return array;
+};
+
+var extend = exports.extend = function (obj, extendWith) {
+  for (var i in extendWith) {
+    if (extendWith.hasOwnProperty(i)) {
+      obj[i] = extendWith[i];
+    }
+  }
+  return obj;
+};
+
+var extendDefault = exports.extendDefault = function (obj, extendWith) {
+  for (var i in extendWith) {
+    if (extendWith.hasOwnProperty(i) && obj[i] === undefined) {
+      obj[i] = extendWith[i];
+    }
+  }
+  return obj;
+};
+
+var genID = exports.genID = function (prefix) {
+  prefix = prefix || 'generic-doctest';
+  var id = arguments.callee._idGen++;
+  return prefix + '-' + id;
+};
+genID._idGen = 1;
+
+var getElementText = exports.getElementText = function (el) {
+  if (! el) {
+    throw('You must pass in an element');
+  }
+  var text = '';
+  for (var i=0; i<el.childNodes.length; i++) {
+    var sub = el.childNodes[i];
+    if (sub.nodeType == 3) {
+      // TEXT_NODE
+      text += sub.nodeValue;
+    } else if (sub.childNodes) {
+      text += getElementText(sub);
+    }
+  }
+  return text;
+};
+
+var makeElement = exports.makeElement = function (tagName, attrs, children) {
+  var el = doc.createElement(tagName);
+  if (attrs) {
+    for (var i in attrs) {
+      if (attrs.hasOwnProperty(i)) {
+        if (i == 'className') {
+          el.className = attrs[i];
+        } else {
+          el.setAttribute(i, attrs[i]);
+        }
       }
     }
   }
-  return result;
+  if (children) {
+    for (var i=0; i<children.length; i++) {
+      if (typeof children[i] == 'string') {
+        el.appendChild(doc.createTextNode(children[i]));
+      } else {
+        el.appendChild(children[i]);
+      }
+    }
+  }
+  return el;
 };
 
-doctest.JSRunner.prototype.showCheckDifference = function (got, expectedRegex) {
-  if (expectedRegex.charAt(0) != '^') {
-    throw 'Unexpected regex, no leading ^';
+var addClass = exports.addClass = function (el, className) {
+  if (! el.className) {
+    el.className = className;
+  } else if (! hasClass(el, className)) {
+    el.className += ' ' + className;
   }
-  if (expectedRegex.charAt(expectedRegex.length-1) != '$') {
-    throw 'Unexpected regex, no trailing $';
-  }
-  expectedRegex = expectedRegex.substr(1, expectedRegex.length-2);
-  // Technically this might not be right, but this is all a heuristic:
-  expectedRegex = expectedRegex.replace(/\(\?:\.\|\[\\r\\n\]\)\*/g, '...');
-  var expectedLines = expectedRegex.split('\\n');
-  for (var i=0; i<expectedLines.length; i++) {
-    expectedLines[i] = expectedLines[i].replace(/\.\.\./g, '(?:.|[\r\n])*');
-  }
-  var gotLines = got.split('\n');
-  var result = [];
-  var totalLines = expectedLines.length > gotLines.length ?
-    expectedLines.length : gotLines.length;
-  function displayExpectedLine(line) {
-    return line;
-    line = line.replace(/\[a-zA-Z0-9_.\]\+/g, '?');
-    line = line.replace(/ \+/g, ' ');
-    line = line.replace(/\(\?:\.\|\[\\r\\n\]\)\*/g, '...');
-    // FIXME: also unescape values? e.g., * became \*
-    return line;
-  }
-  for (var i=0; i<totalLines; i++) {
-    if (i >= expectedLines.length) {
-      result.push('got extra line: ' + repr(gotLines[i]));
-      continue;
-    } else if (i >= gotLines.length) {
-      result.push('expected extra line: ' + displayExpectedLine(expectedLines[i]));
-      continue;
-    }
-    var gotLine = gotLines[i];
-    try {
-      var expectRE = new RegExp('^' + expectedLines[i] + '$');
-    } catch (e) {
-      result.push('regex match failed: ' + repr(gotLine) + ' ('
-            + expectedLines[i] + ')');
-      continue;
-    }
-    if (gotLine.search(expectRE) != -1) {
-      result.push('match: ' + repr(gotLine));
-    } else {
-      result.push('no match: ' + repr(gotLine) + ' ('
-            + displayExpectedLine(expectedLines[i]) + ')');
-    }
-  }
-  return result;
 };
 
-// Should I really be setting this on RegExp?
-RegExp.escape = function (text) {
-  if (!arguments.callee.sRE) {
+var hasClass = exports.hasClass = function (el, className) {
+  return (' ' + el.className + ' ').indexOf(' ' + className + ' ') != -1;
+};
+
+var RegExpEscape = exports.RegExpEscape = function (text) {
+  if (! arguments.callee.sRE) {
     var specials = [
       '/', '.', '*', '+', '?', '|',
       '(', ')', '[', ']', '{', '}', '\\'
@@ -673,425 +1132,7 @@ RegExp.escape = function (text) {
   return text.replace(arguments.callee.sRE, '\\$1');
 };
 
-doctest.OutputCapturer = function () {
-  if (this === doctest._noThisObject) {
-    throw('you forgot new!');
-  }
-  this.output = '';
-  this.capturedLog = '';
-  this.logGrouped = false;
-};
-
-doctest._output = null;
-
-doctest.OutputCapturer.prototype.capture = function () {
-  doctest._output = this;
-};
-
-doctest.OutputCapturer.prototype.stopCapture = function () {
-  doctest._output = null;
-};
-
-doctest.OutputCapturer.prototype.captureLog = function () {
-  // Reset variables just in case:
-  this.stopCaptureLog();
-  var self = this;
-  function logFactory(levelMessage, oldLog) {
-    var func = function () {
-      if (console.group && (! this.logGrouped)) {
-        this.logGrouped = true;
-        console.group('Output from example:');
-      }
-      oldLog.apply(console, arguments);
-      if (levelMessage) {
-        self.capturedLog += levelMessage;
-      }
-      for (var i=0; i<arguments.length; i++) {
-        var text = arguments[i];
-        if (i) {
-          self.capturedLog += ' ';
-        }
-        if (typeof text == 'string') {
-          self.capturedLog += text;
-        } else {
-          self.capturedLog += repr(text);
-        }
-      }
-      self.capturedLog += '\n';
-    };
-    func.origFunction = oldLog;
-    return func;
-  };
-  console.log = logFactory(null, console.log);
-  console.warn = logFactory('WARN: ', console.warn);
-  console.error = logFactory('ERROR: ', console.error);
-  console.info = logFactory(null, console.info);
-};
-
-doctest.OutputCapturer.prototype.stopCaptureLog = function () {
-  if (this.logGrouped) {
-    console.groupEnd();
-  }
-  var names = ['log', 'warn', 'error', 'info'];
-  for (var i=0; i<names.length; i++) {
-    if (console[names[i]] && console[names[i]].origFunction) {
-      console[names[i]] = console[names[i]].origFunction;
-    }
-  }
-};
-
-doctest.OutputCapturer.prototype.write = function (text) {
-  if (typeof text == 'string') {
-    this.output += text;
-  } else {
-    this.output += repr(text);
-  }
-};
-
-// Used to create unique IDs:
-doctest._idGen = 0;
-
-doctest.genID = function (prefix) {
-  prefix = prefix || 'generic-doctest';
-  var id = doctest._idGen++;
-  return prefix + '-' + doctest._idGen;
-};
-
-doctest.writeln = function () {
-  for (var i=0; i<arguments.length; i++) {
-    if (i) {
-      write(' ');
-    }
-    write(arguments[i]);
-  }
-  write('\n');
-};
-
-if (typeof writeln == 'undefined') {
-  var writeln = doctest.writeln;
-}
-
-doctest.write = function (text) {
-  if (doctest._output !== null) {
-    doctest._output.write(text);
-  } else {
-    log(text);
-  }
-};
-
-if (typeof write == 'undefined') {
-  var write = doctest.write;
-}
-
-doctest._waitCond = null;
-
-function wait(conditionOrTime, hardTimeout) {
-  // FIXME: should support a timeout even with a condition
-  if (typeof conditionOrTime == 'undefined'
-      || conditionOrTime === null) {
-    // same as wait-some-small-amount-of-time
-    conditionOrTime = 0;
-  }
-  doctest._waitCond = conditionOrTime;
-  doctest._waitTimeout = hardTimeout;
-};
-
-doctest.wait = wait;
-
-doctest.assert = function (expr, statement) {
-  if (typeof expr == 'string') {
-    if (! statement) {
-      statement = expr;
-    }
-    expr = doctest.eval(expr);
-  }
-  if (! expr) {
-    throw('AssertionError: '+statement);
-  }
-};
-
-if (typeof assert == 'undefined') {
-  var assert = doctest.assert;
-}
-
-doctest.getText = function (el) {
-  if (! el) {
-    throw('You must pass in an element');
-  }
-  var text = '';
-  for (var i=0; i<el.childNodes.length; i++) {
-    var sub = el.childNodes[i];
-    if (sub.nodeType == 3) {
-      // TEXT_NODE
-      text += sub.nodeValue;
-    } else if (sub.childNodes) {
-      text += doctest.getText(sub);
-    }
-  }
-  return text;
-};
-
-doctest.reload = function (button/*optional*/) {
-  if (button) {
-    button.innerHTML = 'reloading...';
-    button.disabled = true;
-  }
-  location.reload();
-};
-
-/* Taken from MochiKit, with an addition to print objects */
-doctest.repr = function (o, indentString, maxLen) {
-    indentString = indentString || '';
-    if (doctest._reprTracker === null) {
-      var iAmTheTop = true;
-      doctest._reprTracker = [];
-    } else {
-      var iAmTheTop = false;
-    }
-    try {
-      if (doctest._reprTrackObj(o)) {
-        return '..recursive..';
-      }
-      if (maxLen === undefined) {
-        maxLen = 120;
-      }
-      if (typeof o == 'undefined') {
-          return 'undefined';
-      } else if (o === null) {
-          return "null";
-      }
-      try {
-          if (typeof(o.__repr__) == 'function') {
-              return o.__repr__(indentString, maxLen);
-          } else if (typeof(o.repr) == 'function' && o.repr != arguments.callee) {
-              return o.repr(indentString, maxLen);
-          }
-          for (var i=0; i<doctest.repr.registry.length; i++) {
-              var item = doctest.repr.registry[i];
-              if (item[0](o)) {
-                  return item[1](o, indentString, maxLen);
-              }
-          }
-      } catch (e) {
-          if (typeof(o.NAME) == 'string' && (
-                  o.toString == Function.prototype.toString ||
-                      o.toString == Object.prototype.toString)) {
-              return o.NAME;
-          }
-      }
-      try {
-          var ostring = (o + "");
-          if (ostring == '[object Object]' || ostring == '[object]') {
-            ostring = doctest.objRepr(o, indentString, maxLen);
-          }
-      } catch (e) {
-          return "[" + typeof(o) + "]";
-      }
-      if (typeof(o) == "function") {
-          var ostring = ostring.replace(/^\s+/, "").replace(/\s+/g, " ");
-          var idx = ostring.indexOf("{");
-          if (idx != -1) {
-              ostring = ostring.substr(o, idx) + "{...}";
-          }
-      }
-      return ostring;
-    } finally {
-      if (iAmTheTop) {
-        doctest._reprTracker = null;
-      }
-    }
-};
-
-doctest._reprTracker = null;
-
-doctest._reprTrackObj = function (obj) {
-  if (typeof obj != 'object') {
-    return false;
-  }
-  for (var i=0; i<doctest._reprTracker.length; i++) {
-    if (doctest._reprTracker[i] === obj) {
-      return true;
-    }
-  }
-  doctest._reprTracker.push(obj);
-  return false;
-};
-
-doctest._reprTrackSave = function () {
-  return doctest._reprTracker.length-1;
-};
-
-doctest._reprTrackRestore = function (point) {
-  doctest._reprTracker.splice(point, doctest._reprTracker.length - point);
-};
-
-doctest._sortedKeys = function (obj) {
-  var keys = [];
-  for (var i in obj) {
-    // FIXME: should I use hasOwnProperty?
-    if (obj.hasOwnProperty(i)) {
-      keys.push(i);
-    }
-  }
-  keys.sort();
-  return keys;
-};
-
-doctest.objRepr = function (obj, indentString, maxLen) {
-  var restorer = doctest._reprTrackSave();
-  var ostring = '{';
-  var keys = doctest._sortedKeys(obj);
-  for (var i=0; i<keys.length; i++) {
-    if (ostring != '{') {
-      ostring += ', ';
-    }
-    ostring += doctest._keyRepr(keys[i]) + ': ' + doctest.repr(obj[keys[i]], indentString, maxLen);
-  }
-  ostring += '}';
-  if (ostring.length > (maxLen - indentString.length)) {
-    doctest._reprTrackRestore(restorer);
-    return doctest.multilineObjRepr(obj, indentString, maxLen);
-  }
-  return ostring;
-};
-
-doctest.multilineObjRepr = function (obj, indentString, maxLen) {
-  var keys = doctest._sortedKeys(obj);
-  var ostring = '{\n';
-  for (var i=0; i<keys.length; i++) {
-    ostring += indentString + '  ' + doctest._keyRepr(keys[i]) + ': ';
-    ostring += doctest.repr(obj[keys[i]], indentString+'  ', maxLen);
-    if (i != keys.length - 1) {
-      ostring += ',';
-    }
-    ostring += '\n';
-  }
-  ostring += indentString + '}';
-  return ostring;
-};
-
-doctest._keyRepr = function (key) {
-  if (key.search(/^[a-zA-Z_][a-zA-Z0-9_]*$/) === 0) {
-    return key;
-  } else {
-    return doctest.repr(key);
-  }
-};
-
-doctest.arrayRepr = function (obj, indentString, maxLen) {
-  var restorer = doctest._reprTrackSave();
-  var s = "[";
-  for (var i=0; i<obj.length; i++) {
-    s += doctest.repr(obj[i], indentString, maxLen);
-    if (i != obj.length-1) {
-      s += ", ";
-    }
-  }
-  s += "]";
-  if (s.length > (maxLen + indentString.length)) {
-    doctest._reprTrackRestore(restorer);
-    return doctest.multilineArrayRepr(obj, indentString, maxLen);
-  }
-  return s;
-};
-
-doctest.multilineArrayRepr = function (obj, indentString, maxLen) {
-  var s = "[\n";
-  for (var i=0; i<obj.length; i++) {
-    s += indentString + '  ' + doctest.repr(obj[i], indentString+'  ', maxLen);
-    if (i != obj.length - 1) {
-      s += ',';
-    }
-    s += '\n';
-  }
-  s += indentString + ']';
-  return s;
-};
-
-doctest.xmlRepr = function (doc, indentString) {
-  var i;
-  if (doc.nodeType == doc.DOCUMENT_NODE) {
-    return doctest.xmlRepr(doc.childNodes[0], indentString);
-  }
-  indentString = indentString || '';
-  var s = indentString + '<' + doc.tagName;
-  var attrs = [];
-  if (doc.attributes && doc.attributes.length) {
-    for (i=0; i<doc.attributes.length; i++) {
-      attrs.push(doc.attributes[i].nodeName);
-    }
-    attrs.sort();
-    for (i=0; i<attrs.length; i++) {
-      s += ' ' + attrs[i] + '="';
-      var value = doc.getAttribute(attrs[i]);
-      value = value.replace('&', '&amp;');
-      value = value.replace('"', '&quot;');
-      s += value;
-      s += '"';
-    }
-  }
-  if (! doc.childNodes.length) {
-    s += ' />';
-    return s;
-  } else {
-    s += '>';
-  }
-  var hasNewline = false;
-  for (i=0; i<doc.childNodes.length; i++) {
-    var el = doc.childNodes[i];
-    if (el.nodeType == doc.TEXT_NODE) {
-      s += doctest.strip(el.textContent);
-    } else {
-      if (! hasNewline) {
-        s += '\n';
-        hasNewline = true;
-      }
-      s += doctest.xmlRepr(el, indentString + '  ');
-      s += '\n';
-    }
-  }
-  if (hasNewline) {
-    s += indentString;
-  }
-  s += '</' + doc.tagName + '>';
-  return s;
-};
-
-doctest.repr.registry = [
-    [function (o) {
-         return typeof o == 'string';},
-     function (o) {
-         o = '"' + o.replace(/([\"\\])/g, '\\$1') + '"';
-         o = o.replace(/[\f]/g, "\\f")
-         .replace(/[\b]/g, "\\b")
-         .replace(/[\n]/g, "\\n")
-         .replace(/[\t]/g, "\\t")
-         .replace(/[\r]/g, "\\r");
-         return o;
-     }],
-    [function (o) {
-         return typeof o == 'number';},
-     function (o) {
-         return o + "";
-     }],
-    [function (o) {
-          return (typeof o == 'object' && o.xmlVersion);
-     },
-     doctest.xmlRepr],
-    [function (o) {
-         var typ = typeof o;
-         if ((typ != 'object' && ! (typ == 'function' && typeof o.item == 'function')) ||
-             o === null ||
-             typeof o.length != 'number' ||
-             o.nodeType === 3) {
-             return false;
-         }
-         return true;
-     },
-     doctest.arrayRepr
-     ]];
-
-doctest.objDiff = function (orig, current) {
+var objDiff = exports.objDiff = function (orig, current) {
   var result = {
     added: {},
     removed: {},
@@ -1115,280 +1156,57 @@ doctest.objDiff = function (orig, current) {
   return result;
 };
 
-doctest.writeDiff = function (orig, current, indentString) {
+var writeDiff = exports.writeDiff = function (orig, current, indentString) {
   if (typeof orig != 'object' || typeof current != 'object') {
-    writeln(indentString + repr(orig, indentString) + ' -> ' + repr(current, indentString));
+    print(indentString + repr(orig, indentString) + ' -> ' + repr(current, indentString));
     return;
   }
   indentString = indentString || '';
-  var diff = doctest.objDiff(orig, current);
+  var diff = objDiff(orig, current);
   var i, keys;
   var any = false;
-  keys = doctest._sortedKeys(diff.added);
+  keys = sortedKeys(diff.added);
   for (i=0; i<keys.length; i++) {
     any = true;
-    writeln(indentString + '+' + keys[i] + ': '
-            + repr(diff.added[keys[i]], indentString));
+    print(indentString + '+' + keys[i] + ': '
+          + repr(diff.added[keys[i]], indentString));
   }
-  keys = doctest._sortedKeys(diff.removed);
+  keys = sortedKeys(diff.removed);
   for (i=0; i<keys.length; i++) {
     any = true;
-    writeln(indentString + '-' + keys[i] + ': '
-            + repr(diff.removed[keys[i]], indentString));
+    print(indentString + '-' + keys[i] + ': '
+          + repr(diff.removed[keys[i]], indentString));
   }
-  keys = doctest._sortedKeys(diff.changed);
+  keys = sortedKeys(diff.changed);
   for (i=0; i<keys.length; i++) {
     any = true;
-    writeln(indentString + keys[i] + ': '
-            + repr(diff.changed[keys[i]][0], indentString)
-            + ' -> '
-            + repr(diff.changed[keys[i]][1], indentString));
+    print(indentString + keys[i] + ': '
+          + repr(diff.changed[keys[i]][0], indentString)
+          + ' -> '
+          + repr(diff.changed[keys[i]][1], indentString));
   }
   if (! any) {
-    writeln(indentString + '(no changes)');
+    print(indentString + '(no changes)');
   }
 };
 
-doctest.objectsEqual = function (ob1, ob2) {
-  var i;
-  if (typeof ob1 != 'object' || typeof ob2 != 'object') {
-    return ob1 === ob2;
-  }
-  for (i in ob1) {
-    if (ob1[i] !== ob2[i]) {
-      return false;
+var sortedKeys = exports.sortedKeys = function (obj) {
+  var keys = [];
+  for (var i in obj) {
+    if (obj.hasOwnProperty(i)) {
+      keys.push(i);
     }
   }
-  for (i in ob2) {
-    if (! (i in ob1)) {
-      return false;
-    }
-  }
-  return true;
+  keys.sort();
+  return keys;
 };
 
-doctest.getElementsByTagAndClassName = function (tagName, className, parent/*optional*/) {
-    parent = parent || document;
-    var els = parent.getElementsByTagName(tagName);
-    var result = [];
-    var regexes = [];
-    if (typeof className == 'string') {
-      className = [className];
-    }
-    for (var i=0; i<className.length; i++) {
-      regexes.push(new RegExp("\\b" + className[i] + "\\b"));
-    }
-    for (i=0; i<els.length; i++) {
-      var el = els[i];
-      if (el.className) {
-        var passed = true;
-        for (var j=0; j<regexes.length; j++) {
-          if (el.className.search(regexes[j]) == -1) {
-            passed = false;
-            break;
-          }
-        }
-        if (passed) {
-          result.push(el);
-        }
-      }
-    }
-    return result;
-};
-
-doctest.strip = function (str) {
-    str = str + "";
-    return str.replace(/\s+$/, "").replace(/^\s+/, "");
-};
-
-doctest.rstrip = function (str) {
-  str = str + "";
-  return str.replace(/\s+$/, "");
-};
-
-doctest.escapeHTML = function (s) {
-    return s.replace(/&/g, '&amp;')
-    .replace(/\"/g, "&quot;")
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-};
-
-doctest.escapeSpaces = function (s) {
-  return s.replace(/  /g, '&nbsp; ');
-};
-
-doctest.extend = function (obj, extendWith) {
-    for (i in extendWith) {
-        obj[i] = extendWith[i];
-    }
-    return obj;
-};
-
-doctest.extendDefault = function (obj, extendWith) {
-    for (i in extendWith) {
-        if (typeof obj[i] == 'undefined') {
-            obj[i] = extendWith[i];
-        }
-    }
-    return obj;
-};
-
-if (typeof repr == 'undefined') {
-    var repr = doctest.repr;
-}
-
-doctest._consoleFunc = function (attr) {
-  var result;
-  var func;
-  if (window.console !== undefined
-      && window.console[attr] !== undefined) {
-    func = window.console[attr];
-    if (func.origFunction) {
-      // Override the console capturing
-      func = func.origFunction;
-    }
-    if (typeof func.apply === 'function') {
-      result = function() {
-        func.apply(console, arguments);
-      };
-    } else {
-      result = func;
-    }
-  } else if (window.console !== undefined && console.log) {
-    func = console.log;
-    if (func.origFunction) {
-      func = func.origFunction;
-    }
-    result = function () {
-      func.apply(console, arguments);
-    };
-  } else {
-    result = function () {
-      // Do nothing?
-    };
-  }
-  return result;
-};
-
-if (typeof log == 'undefined') {
-  var log = doctest._consoleFunc('log');
-}
-
-if (typeof logDebug == 'undefined') {
-  var logDebug = doctest._consoleFunc('debug');
-}
-
-if (typeof logInfo == 'undefined') {
-  var logInfo = doctest._consoleFunc('info');
-}
-
-if (typeof logWarn == 'undefined') {
-  var logWarn = doctest._consoleFunc('warn');
-}
-
-if (typeof logError == 'undefined') {
-  var logError = doctest._consoleFunc('error');
-}
-
-doctest.eval = function () {
-  return window.eval.apply(window, arguments);
-};
-
-doctest.useCoffeeScript = function (options) {
-  options = options || {};
-  options.bare = true;
-  options.globals = true;
-  if (! options.fileName) {
-    options.fileName = 'repl';
-  }
-  if (typeof CoffeeScript == 'undefined') {
-    doctest.logWarn('coffee-script.js is not included');
-    throw 'coffee-script.js is not included';
-  }
-  doctest.eval = function (code) {
-    var src = CoffeeScript.compile(code, options);
-    logDebug('Compiled code to:', src);
-    return window.eval(src);
-  };
-};
-
-doctest.autoSetup = function (parent) {
-  var tags = doctest.getElementsByTagAndClassName('div', 'test', parent);
-  // First we'll make sure everything has an ID
-  var tagsById = {};
-  for (var i=0; i<tags.length; i++) {
-    var tagId = tags[i].getAttribute('id');
-    if (! tagId) {
-      tagId = 'test-' + (++doctest.autoSetup._idCount);
-      tags[i].setAttribute('id', tagId);
-    }
-    // FIXME: test uniqueness here, warn
-    tagsById[tagId] = tags[i];
-  }
-  // Then fill in the labels
-  for (i=0; i<tags.length; i++) {
-    var el = document.createElement('span');
-    el.className = 'test-id';
-    var anchor = document.createElement('a');
-    anchor.setAttribute('href', '#' + tags[i].getAttribute('id'));
-    anchor.appendChild(document.createTextNode(tags[i].getAttribute('id')));
-    var button = document.createElement('button');
-    button.innerHTML = 'test';
-    button.setAttribute('type', 'button');
-    button.setAttribute('test-id', tags[i].getAttribute('id'));
-    button.onclick = function () {
-      location.hash = '#' + this.getAttribute('test-id');
-      location.reload();
-    };
-    el.appendChild(anchor);
-    el.appendChild(button);
-    tags[i].insertBefore(el, tags[i].childNodes[0]);
-  }
-  // Lastly, create output areas in each section
-  for (i=0; i<tags.length; i++) {
-    var outEl = doctest.getElementsByTagAndClassName('pre', 'output', tags[i]);
-    if (! outEl.length) {
-      outEl = document.createElement('pre');
-      outEl.className = 'output';
-      outEl.setAttribute('id', tags[i].getAttribute('id') + '-output');
-    }
-  }
-  if (location.hash.length > 1) {
-    // This makes the :target CSS work, since if the hash points to an
-    // element whose id has just been added, it won't be noticed
-    location.hash = location.hash;
-  }
-  var output = document.getElementById('doctestOutput');
-  if (! tags.length) {
-    tags = document.getElementsByTagName('body');
-  }
-  if (! output) {
-    output = document.createElement('pre');
-    output.setAttribute('id', 'doctestOutput');
-    output.className = 'output';
-    tags[0].parentNode.insertBefore(output, tags[0]);
-  }
-  var reloader = document.getElementById('doctestReload');
-  if (! reloader) {
-    reloader = document.createElement('button');
-    reloader.setAttribute('type', 'button');
-    reloader.setAttribute('id', 'doctest-testall');
-    reloader.innerHTML = 'test all';
-    reloader.onclick = function () {
-      location.hash = '#doctest-testall';
-      location.reload();
-    };
-    output.parentNode.insertBefore(reloader, output);
-  }
-};
-
-doctest.autoSetup._idCount = 0;
-
-doctest.Spy = function (name, options, extraOptions) {
+var Spy = exports.Spy = function (name, options, extraOptions) {
   var self;
-  if (doctest.spies[name]) {
-     self = doctest.spies[name];
-     if (! options && ! extraOptions) {
+  name = name || 'spy';
+  if (Spy.spies[name]) {
+     self = Spy.spies[name];
+     if ((! options) && ! extraOptions) {
        return self;
      }
   } else {
@@ -1396,15 +1214,14 @@ doctest.Spy = function (name, options, extraOptions) {
       return self.func.apply(this, arguments);
     };
   }
-  name = name || 'spy';
   options = options || {};
   if (typeof options == 'function') {
     options = {applies: options};
   }
   if (extraOptions) {
-    doctest.extendDefault(options, extraOptions);
+    extendDefault(options, extraOptions);
   }
-  doctest.extendDefault(options, doctest.defaultSpyOptions);
+  extendDefault(options, Spy.defaultOptions);
   self._name = name;
   self.options = options;
   self.called = false;
@@ -1414,7 +1231,7 @@ doctest.Spy = function (name, options, extraOptions) {
   self.argList = [];
   self.selfList = [];
   self.writes = options.writes || false;
-  self.returns = options.returns || null;
+  self.returns = options.returns || undefined;
   self.applies = options.applies || null;
   self.binds = options.binds || null;
   self.throwError = options.throwError || null;
@@ -1423,7 +1240,7 @@ doctest.Spy = function (name, options, extraOptions) {
   self.func = function () {
     self.called = true;
     self.calledWait = true;
-    self.args = doctest._argsToArray(arguments);
+    self.args = argsToArray(arguments);
     self.self = this;
     self.argList.push(self.args);
     self.selfList.push(this);
@@ -1432,7 +1249,11 @@ doctest.Spy = function (name, options, extraOptions) {
       writeln(self.formatCall());
     }
     if (self.throwError) {
-      throw self.throwError;
+      var throwError = self.throwError;
+      if (typeof throwError == "function") {
+        throwError = self.throwError.apply(this, arguments);
+      }
+      throw throwError;
     }
     if (self.applies) {
       return self.applies.apply(this, arguments);
@@ -1446,8 +1267,8 @@ doctest.Spy = function (name, options, extraOptions) {
   // Method definitions:
   self.formatCall = function () {
     var s = '';
-    if ((! self.ignoreThis) && self.self !== window && self.self !== self) {
-      s += doctest.repr(self.self) + '.';
+    if ((! self.ignoreThis) && self.self !== globalObject && self.self !== self) {
+      s += repr(self.self) + '.';
     }
     s += self._name;
     if (self.args === null) {
@@ -1468,7 +1289,7 @@ doctest.Spy = function (name, options, extraOptions) {
       } else {
         var maxLen = undefined;
       }
-      s += doctest.repr(self.args[i], '', maxLen);
+      s += repr(self.args[i], '', maxLen);
     }
     s += ')';
     return s;
@@ -1502,7 +1323,7 @@ doctest.Spy = function (name, options, extraOptions) {
     func.repr = function () {
       return 'called:'+repr(self);
     };
-    doctest.wait(func, timeout);
+    wait(func, timeout);
   };
 
   self.repr = function () {
@@ -1512,7 +1333,7 @@ doctest.Spy = function (name, options, extraOptions) {
   if (options.methods) {
     self.methods(options.methods);
   }
-  doctest.spies[name] = self;
+  Spy.spies[name] = self;
   if (options.wait) {
     if (typeof options.wait == 'number') {
       self.wait(options.wait);
@@ -1523,185 +1344,59 @@ doctest.Spy = function (name, options, extraOptions) {
   return self;
 };
 
-doctest._argsToArray = function (args) {
-  var array = [];
-  for (var i=0; i<args.length; i++) {
-    array.push(args[i]);
-  }
-  return array;
-};
+Spy.spies = {};
+Spy.defaultOptions = {writes: true};
 
-if (typeof Spy === 'undefined') {
-  var Spy = doctest.Spy;
-}
+var params = exports.params = {};
 
-doctest.spies = {};
+if (typeof location != 'undefined') {
 
-doctest.defaultTimeout = 2000;
-
-doctest.defaultSpyOptions = {writes: true};
-
-doctest.params = {};
-
-(function (params) {
-  var url = location.href + '';
-  if (url.indexOf('#') != -1) {
-    url = url.substr(0, url.indexOf('#'));
-  }
-  if (url.indexOf('?') == -1) {
-    return;
-  }
-  var qs = url.substr(url.indexOf('?')+1);
-  var parts = qs.split('&');
-  for (var i=0; i<parts.length; i++) {
-    if (parts[i].indexOf('=') == -1) {
-      var name = decodeURIComponent(parts[i]);
-      var value = null;
-    } else {
-      var name = decodeURIComponent(parts[i].substr(0, parts[i].indexOf('=')));
-      var value = decodeURIComponent(parts[i].substr(parts[i].indexOf('=')+1));
+  (function (params) {
+    var url = location.href + '';
+    if (url.indexOf('#') != -1) {
+      url = url.substr(0, url.indexOf('#'));
     }
-    if (params.hasOwnProperty(name)) {
-      if (params[name] === null || typeof params[name] == 'string') {
-        params[name] = [params[name], value];
+    if (url.indexOf('?') == -1) {
+      return;
+    }
+    var qs = url.substr(url.indexOf('?')+1);
+    var parts = qs.split('&');
+    for (var i=0; i<parts.length; i++) {
+      if (parts[i].indexOf('=') == -1) {
+        var name = decodeURIComponent(parts[i]);
+        var value = null;
       } else {
-        params[name].push(value);
+        var name = decodeURIComponent(parts[i].substr(0, parts[i].indexOf('=')));
+        var value = decodeURIComponent(parts[i].substr(parts[i].indexOf('=')+1));
       }
-    } else {
-      params[name] = value;
-    }
-  }
-})(doctest.params);
-
-var docTestOnLoad = function () {
-  var auto = false;
-  if (/\bautodoctest\b/.exec(document.body.className)) {
-    doctest.autoSetup();
-    auto = true;
-  } else {
-    logDebug('No autodoctest class on <body>');
-  }
-  var loc = window.location.search.substring(1);
-  if (auto || (/doctestRun/).exec(loc)) {
-    var elements = null;
-    // FIXME: we need to put the output near the specific test being tested:
-    if (location.hash) {
-      var el = document.getElementById(location.hash.substr(1));
-      if (el) {
-        if (/\btest\b/.exec(el.className)) {
-          var testEls = doctest.getElementsByTagAndClassName('pre', 'doctest', el);
-          elements = doctest.getElementsByTagAndClassName('pre', ['doctest', 'setup']);
-          for (var i=0; i<testEls.length; i++) {
-            elements.push(testEls[i]);
-          }
+      if (params.hasOwnProperty(name)) {
+        if (params[name] === null || typeof params[name] == 'string') {
+          params[name] = [params[name], value];
+        } else {
+          params[name].push(value);
         }
+      } else {
+        params[name] = value;
       }
     }
-    if ((/doctestWait/).exec(loc)) {
-      doctest.defaultElements = elements;
-    } else {
-      doctest(0, elements);
-    }
+  })(params);
+
+  if (location.hash.substr(0, 8) == '#example') {
+    location.hash = '';
   }
-};
-
-doctest.defaultElements = null;
-
-if (window.addEventListener) {
-    window.addEventListener('load', docTestOnLoad, false);
-} else if(window.attachEvent) {
-    window.attachEvent('onload', docTestOnLoad);
 }
 
-// FIXME: maybe this should be set more carefully just during the tests?
-window.onerror = function (message, filename, lineno) {
-  var m = message;
-  if (filename || lineno) {
-    m += ' (';
-    if (filename) {
-      m += filename;
-      if (lineno) {
-        m += ':' + lineno;
-      }
-    } else {
-      m += 'line ' + lineno;
+if (typeof window != 'undefined') {
+  window.addEventListener('load', function () {
+    if (hasClass(doc.body), 'autodoctest') {
+      var runner = new Runner();
+      var parser = new HTMLParser(runner);
+      parser.loadRemotes(function () {
+        parser.parse();
+        runner.run();
+      });
     }
-    m += ')';
-  }
-  writeln('Error: ' + m);
-};
+  }, false);
+}
 
-/* Stand-along JS file parsing: */
-
-doctest.FileParser = function (contents) {
-  if (this == doctest._noThisObject) {
-    throw 'you forgot new!';
-  }
-  this.examples = [];
-  if (typeof esprima == "undefined") {
-    throw 'You must install or include esprima.js';
-  }
-  // FIXME: this is bad, copied from Parser
-  var newHTML = document.createElement('span');
-  document.body.appendChild(newHTML);
-  var examplesID = doctest.genID('example-set');
-
-  var ast = esprima.parse(contents, {
-    range: true,
-    comment: true
-  });
-  // FIXME: raise proper error if the ast is wrong
-  var pos = 0;
-  var parts = [];
-  for (var i=0; i<ast.comments.length; i++) {
-    var comment = ast.comments[i];
-    if (comment.type != 'Block') {
-      continue;
-    }
-    if (comment.value.search(/^\s*=>/) == -1) {
-      // Not a comment we care about
-      continue;
-    }
-    var start = comment.range[0];
-    var end = comment.range[1];
-    var example_lines = contents.substr(pos, start-pos);
-    var output_lines = comment.value.replace(/^\s*=>/, '');
-    var ex = new doctest.Example(example_lines, output_lines);
-    this.examples.push(ex);
-    newHTML.appendChild(ex.createSpan());
-  }
-  var last = contents.substr(pos, contents.length-pos);
-  if (last.search(/[^\s]/ != -1)) {
-    this.examples.push(new doctest.Example(last, ''));
-  }
-  doctest._allExamples[examplesID] = this.examples;
-};
-
-doctest.FileParser.fromUrl = function (url, callback) {
-  var req = new XMLHttpRequest();
-  req.open('GET', url);
-  req.onreadystatechange = function () {
-    if (req.readyState != 4) {
-      return;
-    }
-    if (req.status != 200) {
-      console.log('ERROR: could not fetch ' + url + ' status: ' + req.status);
-      callback();
-      return;
-    }
-    var parser = new doctest.FileParser(req.responseText);
-    callback(parser);
-  };
-  req.send();
-};
-
-doctest.FileParser.run = function (url, verbosity, outputId) {
-  logDebug('Loading URL', url);
-  var output = document.getElementById(outputId || 'doctestOutput');
-  var reporter = new doctest.Reporter(output, verbosity || 0);
-  var suite = new doctest.TestSuite([], reporter);
-  doctest.FileParser.fromUrl(url, function (parser) {
-    suite.parsers.push(parser);
-    suite.run();
-  });
-};
+})(typeof exports == "undefined" ? (typeof doctest == "undefined" ? doctest = {} : doctest) : exports);

@@ -1,5 +1,7 @@
+<!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <title>Doctest.js: unit testing for Javascript made simple</title>
 <script type="text/javascript" src="doctest.js"></script>
 <script type="text/javascript" src=".resources/toc.js"></script>
@@ -61,6 +63,8 @@ href="http://github.com/ianb/doctestjs/wiki">the wiki</a>.</p>
 
 <h3>Introduction</h3>
 
+<div id="doctest-output"></div>
+
 <p> Doctest/JS is a port of a widely used testing module <a
 href="http://python.org/doc/current/lib/module-doctest.html"><code>doctest</code></a>
 from the Python world.  The original doctest is by Tim Peters.
@@ -107,11 +111,11 @@ $ function factorial(n) {
 >         return n * factorial(n-1);
 >     }
 > }
-$ factorial(3)
+$ print(factorial(3))
 6
-$ factorial(4)
+$ print(factorial(4))
 20
-$ factorial('foo')
+$ print(factorial('foo'))
 bar
 </pre>
 </div>
@@ -223,11 +227,10 @@ your code.  You do this like:
 $ function countTag(parent, tag) {
 >     return parent.getElementsByTagName(tag).length;
 > }
-...
-$ countTag(document.getElementById('container'), 'pre');
-10
-$ countTag({}, 'pre');
-Error: parent.getElementsByTagName is not a function
+$ print(countTag(document.getElementById('container'), 'pre'));
+14
+$ print(countTag({}, 'pre'))
+Error: TypeError: parent.getElementsByTagName is not a function
 </pre>
 
 </div>
@@ -302,8 +305,8 @@ $ function updateDom() {
 ...
 $ updateDom();
 $ wait();
-$ document.getElementById('some-output').innerHTML;
-"Test Output"
+$ print(document.getElementById('some-output').innerHTML);
+Test Output
 </pre>
 
 And another example of a callback:
@@ -555,13 +558,6 @@ this object in place immediately (via
   <dd>This is called once at the beginning, and lets you bind the hook
   to the reporter.</dd>
 
-  <dt><code>.startElement(el)</code></dt>
-
-  <dd>This is called at the beginning of each new
-  <code>&lt;pre&gt;</code> element that is tested.  This could be
-  considered a TestCase if you are mapping this to xUnit
-  terminology.</dd>
-
   <dt><code>.reportSuccess(example, output)</code></dt>
 
   <dd>This is called for each line of testing (i.e., each line that
@@ -586,47 +582,11 @@ this object in place immediately (via
 <h3>To Do</h3>
 
 <ol>
-  <li>Detail should be displayed (but not matched for) when there is
-  an exception.  Maybe similarly, detail should be shown when output
-  doesn't match (like a line-by-line match to highlight the difference,
-  at least when dealing with multi-line output).  Some of this is in
-  the console, but should be inline. </li>
-
-  <li>Implement CommonJS loading/module.  Not sure how/if this works
-  in a browser. </li>
 
   <li>A clear, documented way to plug in different output comparison
   tools.  Pure string literal comparison is just one not-so-great
   way.  Also clarify how <code>repr()</code> works and can be
   extended. </li>
-
-  <li>The parser doesn't check for many errors, e.g., you can
-  interleave "output" with expressions, depending on whether you use
-  the <code>></code> prompt.</li>
-
-  <li>Maybe instead of <code>></code> and <code>$</code>, it should
-  use <code>>>></code> for the prompty, and <code>==></code> to
-  indicate that "output" is starting, with no continuation lines.
-  Also maybe a line starting with <code>//</code> should be ignored
-  (as a comment on the tests themselves, instead of needing <code>$
-  //</code>).</li>
-
-  <li>Figure out how this can work without a browser and HTML being
-  involved.  Or... with env.js and a custom reporter?  Or simply a
-  text-based parser? </li>
-
-  <li>Implement a mode that works in a pure-JS file, that then fills
-  in an HTML report.  I imagine something like:
-
-  <pre>
-writeln('hey you');
-/* =>
-hey you
-*/
-</pre>
-
-  Only <code>writeln</code> (or <code>print</code>?) would be
-  supported.  Output would only go in comments.</li>
 
   <li>Experiment with driving an iframe using doctests, for site
   functional/integration testing.</li>
@@ -634,10 +594,6 @@ hey you
   <li>Handle the unstable nature of anchor links to specific failures:
   these should either be stable (link everything upfront?) or
   have some fallback.</li>
-
-  <li>Do something so the screen doesn't scroll around annoyingly
-  during tests as text is added to the page.  Maybe a fixed-height
-  scrolling reporter?</li>
 
   <li>Document <code>doctest.params</code>.  And organize this
   document better.</li>
