@@ -2,13 +2,13 @@
 
 set -ex
 
-mv .resources _resources
+mv .resources resources
 
 echo "Updating files with template..."
 
 files="index.html examples/examples.html examples/examples-2.html"
 
-python _resources/retemplate.py $files
+python resources/retemplate.py $files
 for file in $files ; do
-    sed -i '' 's/\.resources/_resources/g' $file
+    sed -i '' 's/\.resources/resources/g' $file
 done
