@@ -51,5 +51,4 @@ print(factorial(3))
 /* => 6 */
 ```
 
-For more and better (and live) examples see `the doctest.js website
-<http://ianb.github.com/doctestjs/>`_.
+For more and better (and live) examples see [the doctest.js website](http://ianb.github.com/doctestjs/).
