@@ -1,14 +1,13 @@
 body {
   font-family: sans-serif;
 }
+
 li {
   margin-bottom: 0.5em;
 }
+
 code {
   color: #006;
-}
-div, p {
-  margin-bottom: 1em;
 }
 
 h3, h4, h5, h6 {

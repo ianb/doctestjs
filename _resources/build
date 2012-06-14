@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -ex
+
+cd "$(dirname $BASH_SOURCE)"
+cd ..
+mv .resources _resources
+
+echo "Updating files with template..."
+
+files="index.html examples/examples.html examples/examples-2.html"
+
+python _resources/retemplate.py $files
+for file in $files
+    sed -i 's/\.resources/_resources/g' $file
+done
