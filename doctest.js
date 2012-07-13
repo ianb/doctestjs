@@ -403,7 +403,7 @@ repr.ReprClass.prototype = {
     if (el.nodeType == el.DOCUMENT_NODE) {
       return this.xmlRepr(el.childNodes[0], indentString);
     }
-    var s = '<' + el.tagName;
+    var s = '<' + el.tagName.toLowerCase();
     var attrs = [];
     if (el.attributes && el.attributes.length) {
       for (i=0; i<el.attributes.length; i++) {
@@ -427,19 +427,19 @@ repr.ReprClass.prototype = {
     }
     var hasNewline = false;
     for (i=0; i<el.childNodes.length; i++) {
-      var el = el.childNodes[i];
-      if (el.nodeType == el.TEXT_NODE) {
-        s += strip(el.textContent);
+      var child = el.childNodes[i];
+      if (child.nodeType == child.TEXT_NODE) {
+        s += strip(child.textContent);
       } else {
         if (! hasNewline) {
           s += '\n' + indentString;
           hasNewline = true;
         }
-        s += '  ' + this.xmlRepr(el, indentString + '  ');
+        s += '  ' + this.xmlRepr(child, indentString + '  ');
         s += '\n' + indentString;
       }
     }
-    s += '</' + el.tagName + '>';
+    s += '</' + el.tagName.toLowerCase() + '>';
     return s;
   },
 
