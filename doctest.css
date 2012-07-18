@@ -46,6 +46,10 @@ pre.doctest.doctest-some-failure, pre.commenttest.doctest-some-failure {
     padding-left: 1em;
 }
 
+.doctest-example .doctest-output {
+    font-weight: bold;
+}
+
 .doctest-example .doctest-description {
     color: #000;
     font-weight: bold;

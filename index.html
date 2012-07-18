@@ -110,11 +110,9 @@ function factorial(n) {
 print(factorial(3))
 /* => 6 */
 print(factorial(4))
-/* =>
-   20
-*/
+// => 20
 print(factorial('foo'))
-/* => bar */
+// ==> bar
 </pre>
 </div>
 
@@ -162,7 +160,7 @@ Note that you don't have to quote <code>></code> as <code>&amp;gt;</code> -- it'
 <div><b>Comments:</b> you can include comments anywhere, if you just want a comment in your test, do:
   <pre>$ // look ma, nothing's executed!</pre>
 
-  If you are using <code>commenttest</code> then only the exact form <code>/* => ... */</code> is treated as expected output (including meaning that <code>// => ...</code> is not treated as output).
+  If you are using <code>commenttest</code> then only the exact form <code>/* => ... */</code> is treated as expected output, as is <code>// =></code> and <code>/* ==> */</code>
 </div>
 
 <h3>Exceptions and Logging</h3>
