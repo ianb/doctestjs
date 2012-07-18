@@ -767,10 +767,10 @@ Runner.prototype = {
       if (self._exampleWait) {
         if (now - start > waitTimeout) {
           self._currentExample.timeout(now - start);
+        } else {
+          setTimeout(poll, self._waitPollTime);
           return;
         }
-        setTimeout(poll, self._waitPollTime);
-        return;
       }
       self.evalUninit();
       self._currentExample.check();
