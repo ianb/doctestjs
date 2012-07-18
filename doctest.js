@@ -58,7 +58,7 @@ Example.prototype = {
     }
   },
   check: function () {
-    var output = this.output.join('\n');
+    var output = this.output.join('');
     // FIXME: consider using this.result
     this.runner.matcher.match(this, output, this.expected);
   },
@@ -168,10 +168,7 @@ HTMLReporter.prototype = {
   },
 
   logFailure: function (example, got) {
-    var num = parseInt(this.failureEl.innerHTML, 10);
-    num++;
-    this.failureEl.innerHTML = num+'';
-    addClass(this.failureEl, 'doctest-nonzero');
+    this.addFailure();
     if (example.htmlSpan) {
       addClass(example.htmlSpan, 'doctest-failure');
       var showGot = got || '(nothing output)';
@@ -191,6 +188,13 @@ HTMLReporter.prototype = {
     }
     this.showConsoleOutput(example, true);
     this.runner._hook('reportFailure', example, got);
+  },
+
+  addFailure: function () {
+    var num = parseInt(this.failureEl.innerHTML, 10);
+    num++;
+    this.failureEl.innerHTML = num+'';
+    addClass(this.failureEl, 'doctest-nonzero');
   },
 
   showConsoleOutput: function (example, error) {
@@ -443,6 +447,22 @@ repr.ReprClass.prototype = {
     return s;
   },
 
+  xhrRepr: function (req, indentString) {
+    var s = '[XMLHttpRequest ';
+    var states = {
+      0: 'UNSENT',
+      1: 'OPENED',
+      2: 'HEADERS_RECEIVED',
+      3: 'LOADING',
+      4: 'DONE'
+    };
+    s += states[req.readyState];
+    if (req.readyState == 4) {
+      s += ' ' + req.status + ' ' + req.statusText;
+    }
+    return s + ']';
+  },
+
   registry: [
     [function (o) {
        return typeof o == 'string';
@@ -480,6 +500,11 @@ repr.ReprClass.prototype = {
        return true;
      },
      "arrayRepr"
+    ],
+    [function (o) {
+       return o instanceof XMLHttpRequest;
+     },
+     'xhrRepr'
     ]
   ]
 
@@ -532,7 +557,8 @@ Runner.prototype = {
       wait: this.wait.bind(this),
       Abort: this.Abort.bind(this),
       repr: repr,
-      Spy: Spy
+      Spy: Spy,
+      jshint: jshint
     };
     globs.print = globs.writeln;
     var consoleOverwrites = {
@@ -667,6 +693,7 @@ Runner.prototype = {
       window.print = undefined;
       window.wait = undefined;
       window.onerror = undefined;
+      window.jshint = undefined;
       window.console.log = window.console.log.origFunc;
       window.console.warn = window.console.warn.origFunc;
       window.console.error = window.console.error.origFunc;
@@ -815,7 +842,15 @@ HTMLParser.prototype = {
   parse: function () {
     var els = this.findEls();
     for (var i=0; i<els.length; i++) {
-      this.parseEl(els[i]);
+      try {
+        this.parseEl(els[i]);
+      } catch (e) {
+        addClass(els[i], 'doctest-some-failure');
+        this.runner.reporter.addFailure();
+        var failed = makeElement('span', {className: 'doctest-example doctest-failure'}, ['Exception parsing element: ', e+'\n']);
+        els[i].insertBefore(failed, els[i].childNodes[0]);
+        throw e;
+      }
     }
   },
 
@@ -910,10 +945,7 @@ HTMLParser.prototype = {
     var result = [];
     for (var i=0; i<ast.comments.length; i++) {
       var comment = ast.comments[i];
-      if (comment.type != 'Block') {
-        continue;
-      }
-      if (comment.value.search(/^\s*=>/) == -1) {
+      if (comment.value.search(/^\s*==?>/) == -1) {
         // Not a comment we care about
         continue;
       }
@@ -921,7 +953,8 @@ HTMLParser.prototype = {
       var end = comment.range[1];
       var example = contents.substr(pos, start-pos);
       var output = comment.value.replace(/^\s*=> ?/, '');
-      result.push([example, output, example, '/*' + comment.value + '*/']);
+      var orig = comment.type == 'Block' ? '/*' + comment.value + '*/' : '//' + comment.value;
+      result.push([example, output, example, orig]);
       pos = end;
     }
     var last = contents.substr(pos, contents.length-pos);
@@ -937,11 +970,15 @@ HTMLParser.prototype = {
     argsToArray(els).forEach(function (el) {
       var href = el.getAttribute('href');
       if (! href) {
+        href = el.getAttribute('src');
+      }
+      if (! href) {
         return;
       }
       pending++;
       var req = new XMLHttpRequest();
       req.open('GET', href);
+      req.setRequestHeader('Cache-Control', 'no-cache');
       req.onreadystatechange = function () {
         if (req.readyState != 4) {
           return;
@@ -1000,9 +1037,6 @@ TextParser.prototype = {
     var pos = 0;
     for (var i=0; i<ast.comments.length; i++) {
       var comment = ast.comments[i];
-      if (comment.type != 'Block') {
-        continue;
-      }
       if (comment.value.search(/^\s*=>/) == -1) {
         // Not a comment we care about
         continue;
@@ -1349,6 +1383,67 @@ Spy.defaultOptions = {writes: true};
 
 var params = exports.params = {};
 
+function jshint(src, options) {
+  if (typeof JSHINT == 'undefined') {
+    throw 'jshint.js is not included';
+  }
+  var url = src;
+  if (typeof document != 'undefined') {
+    var scripts = document.getElementsByTagName('script');
+    for (var i=0; i<scripts.length; i++) {
+      var scriptSrc = scripts[i].src;
+      if (scriptSrc.indexOf(src) != -1) {
+        url = scriptSrc;
+        break;
+      }
+    }
+  }
+  var req = new XMLHttpRequest();
+  req.open('GET', url);
+  var done = false;
+  req.onreadystatechange = function () {
+    if (req.readyState != 4) {
+      return;
+    }
+    if (req.status != 200) {
+      if (req.status === 0) {
+        print('Error: request to', url, 'failed with no status (cross-origin problem?');
+      } else {
+        print('Error: request to', url, 'failed with status:', req.status);
+      }
+    } else {
+      var result = JSHINT(req.responseText, options);
+      if (result) {
+        print('Script passed:', url);
+      } else {
+        print('Script failed:', repr(url));
+        for (var i=0; i<JSHINT.errors.length; i++) {
+          var error = JSHINT.errors[i];
+          if (error === null) {
+            print('Fatal error; jshint could not continue');
+          } else {
+            print('  ' + (error.line+1) + ':' + (error.character+1) + ' ' + error.reason);
+            print('    ' + error.evidence);
+          }
+        }
+      }
+      /*  Doesn't seem helpful:
+      var report = JSHINT.report();
+      report = report.replace(/<br>(<(div|p)[^>]*>)?/g, '\n');
+      report = report.replace(/<(div|p)[^>]*>/g, '\n');
+      report = report.replace(/<[^>]*>/g, ' ');
+      report = report.replace(/  +/g, ' ');
+      console.log('Report:', report);
+      */
+    }
+    done = true;
+  };
+  req.send();
+  wait(function () {return done;});
+}
+
+exports.jshint = jshint;
+
 if (typeof location != 'undefined') {
 
   (function (params) {
@@ -1392,6 +1487,7 @@ if (typeof window != 'undefined') {
       var runner = new Runner();
       var parser = new HTMLParser(runner);
       parser.loadRemotes(function () {
+        runner.init();
         parser.parse();
         runner.run();
       });
