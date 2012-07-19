@@ -84,21 +84,64 @@ Matcher.prototype = {
   match: function (example, got, expected) {
     var cleanGot = this.clean(got);
     var cleanExpected = this.clean(expected);
-    var re = RegExpEscape(cleanExpected);
+    var regexp = this.makeRegex(cleanExpected);
+    if (cleanGot.search(regexp) != -1) {
+      this.runner.reporter.logSuccess(example, got);
+      return;
+    }
+    var comparisonTable = this.makeComparisonTable(cleanGot, cleanExpected);
+    this.runner.reporter.logFailure(example, got, comparisonTable);
+  },
+
+  makeComparisonTable: function (cleanGot, cleanExpected) {
+    var gotLines = this.splitLines(cleanGot);
+    var expectedLines = this.splitLines(cleanExpected);
+    if (gotLines.length <= 1 || expectedLines.length <= 1) {
+      return null;
+    }
+    var comparisonTable = [];
+    comparisonTable.push({header: 'Details of mismatch:'});
+    var shownTrailing = false;
+    var matching = 0;
+    for (var i=0; i<gotLines.length; i++) {
+      if (i >= expectedLines.length) {
+        if (! shownTrailing) {
+          comparisonTable.push({header: 'Trailing lines in got:'});
+          shownTrailing = true;
+        }
+        comparisonTable.push({got: gotLines[i], error: true});
+      } else {
+        var regexp = this.makeRegex(expectedLines[i]);
+        var error = gotLines[i].search(regexp) == -1;
+        comparisonTable.push({got: gotLines[i], expected: expectedLines[i], error: error});
+        if (! error) {
+          matching++;
+        }
+      }
+    }
+    if (matching <= 1) {
+      return null;
+    }
+    if (expectedLines.length > gotLines.length) {
+      comparisonTable.push({header: 'Trailing expected line(s):'});
+      for (i=gotLines.length; i<expectedLines.length; i++) {
+        comparisonTable.push({expected: expectedLines[i], error: true});
+      }
+    }
+  },
+
+  makeRegex: function (pattern) {
+    var re = RegExpEscape(pattern);
     re = '^' + re + '$';
     re = re.replace(/\\\.\\\.\\\./g, "[\\S\\s\\r\\n]*");
     re = re.replace(/\\\?/g, "[a-zA-Z0-9_.]+");
     re = re.replace(/[ \t]+/g, " +");
     re = re.replace(/["']/g, "['\"]");
-    re = new RegExp(re);
-    if (cleanGot.search(re) != -1) {
-      this.runner.reporter.logSuccess(example, got);
-      return;
-    }
-    this.runner.reporter.logFailure(example, got);
+    return new RegExp(re);
   },
+
   clean: function (s) {
-    var lines = s.split(/(?:\r\n|\r|\n)/);
+    var lines = this.splitLines(s);
     var result = [];
     for (var i=0; i<lines.length; i++) {
       var line = strip(lines[i]);
@@ -107,6 +150,10 @@ Matcher.prototype = {
       }
     }
     return result.join('\n');
+  },
+
+  splitLines: function (s) {
+    return s.split(/(?:\r\n|\r|\n)/);
   }
 };
 
@@ -167,7 +214,7 @@ HTMLReporter.prototype = {
     this.runner._hook('reportSuccess', example, got);
   },
 
-  logFailure: function (example, got) {
+  logFailure: function (example, got, comparisonTable) {
     this.addFailure();
     if (example.htmlSpan) {
       addClass(example.htmlSpan, 'doctest-failure');
@@ -178,6 +225,9 @@ HTMLReporter.prototype = {
         example.htmlSpan.querySelector('.doctest-output').innerHTML = '(nothing expected)\n';
       }
       this.addExampleNote(example, 'Got:', 'doctest-actual-output', showGot);
+    }
+    if (comparisonTable) {
+      this.addComparisonTable(example, comparisonTable);
     }
     if (example.blockEl) {
       addClass(example.blockEl, 'doctest-some-failure');
@@ -214,6 +264,28 @@ HTMLReporter.prototype = {
     }
     example.htmlSpan.appendChild(makeElement('span', {className: 'doctest-description'}, [description + '\n']));
     example.htmlSpan.appendChild(makeElement('span', {className: className}, [text + '\n']));
+  },
+
+  addComparisonTable: function (example, comparisonTable) {
+    if (! example.htmlSpan) {
+      // FIXME; should display text table
+      return;
+    }
+    var table = makeElement('table', {className: 'doctest-comparison-table'});
+    for (var i=0; i<comparisonTable.length; i++) {
+      var line = comparisonTable[i];
+      if (line.header) {
+        table.appendChild(makeElement('tr', {className: 'doctest-comparison-header'}, [
+          makeElement('th', {colspan: 2}, [line.header])
+        ]));
+      } else {
+        table.appendChild(makeElement('tr', {className: line.error ? 'doctest-comparison-error' : null}, [
+          makeElement('td', {className: 'doctest-comparison-got'}, [line.got || '']),
+          makeElement('td', {className: 'doctest-comparison-expected'}, [line.expected || ''])
+        ]));
+      }
+    }
+    example.htmlSpan.appendChild(table);
   }
 };
 
@@ -977,8 +1049,12 @@ HTMLParser.prototype = {
       }
       pending++;
       var req = new XMLHttpRequest();
+      if (href.indexOf('?') == -1) {
+        // Try to stop some caching:
+        href += '?nocache=' + Date.now();
+      }
       req.open('GET', href);
-      req.setRequestHeader('Cache-Control', 'no-cache');
+      req.setRequestHeader('Cache-Control', 'no-cache, max-age=0');
       req.onreadystatechange = function () {
         if (req.readyState != 4) {
           return;
