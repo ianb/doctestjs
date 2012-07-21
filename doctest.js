@@ -128,13 +128,14 @@ Matcher.prototype = {
         comparisonTable.push({expected: expectedLines[i], error: true});
       }
     }
+    return comparisonTable;
   },
 
   makeRegex: function (pattern) {
     var re = RegExpEscape(pattern);
     re = '^' + re + '$';
     re = re.replace(/\\\.\\\.\\\./g, "[\\S\\s\\r\\n]*");
-    re = re.replace(/\\\?/g, "[a-zA-Z0-9_.]+");
+    re = re.replace(/\\\?/g, "[a-zA-Z0-9_.\?]+");
     re = re.replace(/[ \t]+/g, " +");
     re = re.replace(/["']/g, "['\"]");
     return new RegExp(re);
@@ -235,6 +236,9 @@ HTMLReporter.prototype = {
     if (example.htmlID) {
       var anchor = makeElement('a', {href: '#' + example.htmlID, className: 'doctest-failure-link'}, [example.textSummary()]);
       this.failureLinksEl.appendChild(anchor);
+      if (example.htmlID == positionOnFailure) {
+        location.hash = '#' + example.htmlID;
+      }
     }
     this.showConsoleOutput(example, true);
     this.runner._hook('reportFailure', example, got);
@@ -1520,6 +1524,117 @@ function jshint(src, options) {
 
 exports.jshint = jshint;
 
+function NosyXMLHttpRequest(name, req) {
+  if (this === globalObject) {
+    throw 'You forgot *new* NosyXMLHttpRequest(' + repr(name) + ')';
+  }
+  if (! name) {
+    throw 'The name argument is required';
+  }
+  if (typeof name != "string") {
+    throw 'Wrong type of argument for name: ' + name;
+  }
+  if (! req) {
+    req = new XMLHttpRequest();
+  }
+  this._name = name;
+  this._req = req;
+  this._method = null;
+  this._data = null;
+  this._url = null;
+  this._headers = {};
+  this.abort = printWrap(this._req, 'abort', this._name);
+  this.getAllResponseHeaders = this._req.getAllResponseHeaders.bind(this._req);
+  this.getResponseHeader = this._req.getResponseHeader.bind(this._req);
+  this.open = printWrap(this._req, 'open', this._name, (function (method, url) {
+    this._method = method;
+    this._url = url;
+  }).bind(this));
+  this.overrideMimeType = printWrap(this._req, 'overrideMimeType', this._name);
+  this.send = printWrap(this._req, 'send', this._name, (function (data) {
+    if (this.timeout !== undefined) {
+      this._req.timeout = this.timeout;
+    }
+    if (this.withCredentials !== undefined) {
+      this._req.withCredentials = this.withCredentials;
+    }
+    this._data = data;
+  }).bind(this));
+  this.setRequestHeader = printWrap(this._req, 'setRequestHeader', this._name, (function (name, value) {
+    this._headers[name] = value;
+  }).bind(this));
+  this.onreadystatechange = null;
+  this._req.onreadystatechange = (function () {
+    this.readyState = this._req.readyState;
+    if (this.readyState >= this.HEADERS_RECEIVED) {
+      var props = ['response', 'responseText', 'responseType',
+                   'responseXML', 'status', 'statusText', 'upload'];
+
+      for (var i=0; i<props.length; i++) {
+        this[props[i]] = this._req[props[i]];
+      }
+    }
+    if (this.onreadystatechange) {
+      this.onreadystatechange();
+    }
+  }).bind(this);
+  this.UNSENT = 0;
+  this.OPENED = 1;
+  this.HEADERS_RECEIVED = 2;
+  this.LOADING = 3;
+  this.DONE = 4;
+  this.readyState = this.UNSENT;
+  this.toString = function () {
+    var s = 'NosyXMLHttpRequest ';
+    s += {0: 'UNSENT', 1: 'OPENED', 2: 'HEADERS_RECEIVED', 3: 'LOADING', 4: 'DONE'}[this.readyState];
+    if (this._method) {
+      s += '\n' + this._method + ' ' + this._url;
+    }
+    for (var i in this._headers) {
+      if (this._headers.hasOwnProperty(i)) {
+        s += '\n' + i + ': ' + this._headers[i];
+      }
+    }
+    if (this._data) {
+      s += '\n\n' + this._data;
+    }
+    s += '\n';
+    return s;
+  };
+}
+
+NosyXMLHttpRequest.factory = function (name) {
+  return function () {
+    return new NosyXMLHttpRequest(name);
+  };
+};
+
+exports.NosyXMLHttpRequest = NosyXMLHttpRequest;
+
+function printWrap(realObject, methodName, objectName, before) {
+  return function () {
+    var r = objectName + '.' + methodName + '(';
+    var length = arguments.length;
+    while (length && arguments[length-1] === undefined) {
+      length--;
+    }
+    for (var i=0; i<length; i++) {
+      if (i) {
+        r += ', ';
+      }
+      r += repr(arguments[i]);
+    }
+    r += ')';
+    print(r);
+    if (before) {
+      before.apply(realObject, arguments);
+    }
+    return realObject[methodName].apply(realObject, arguments);
+  };
+}
+
+var positionOnFailure = null;
+
 if (typeof location != 'undefined') {
 
   (function (params) {
@@ -1552,7 +1667,8 @@ if (typeof location != 'undefined') {
     }
   })(params);
 
-  if (location.hash.substr(0, 8) == '#example') {
+  if (location.hash.indexOf('#example') == 0) {
+    positionOnFailure = location.hash.substr(1);
     location.hash = '';
   }
 }
