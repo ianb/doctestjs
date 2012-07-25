@@ -111,4 +111,9 @@ a.doctest-failure-link:hover {
 
 td.doctest-comparison-got {
     padding-right: 1em;
+    color: #060;
+}
+
+td.doctest-comparison-expected {
+    color: #900;
 }
