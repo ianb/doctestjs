@@ -25,6 +25,8 @@ fi
 
 echo "Substituting $base/doctest.js"
 
+uglify_options="--no-copyright --max-line-len 200"
+
 python -c '
 import os, sys, re
 os.chdir(sys.argv[1])
@@ -43,4 +45,4 @@ new_content = regex.sub(repl, content)
 with open("doctest.js", "wb") as fp:
     fp.write(new_content)
 print "wrote doctest.js"
-' "$base" esprima.js="$(uglifyjs -nc < esprima/esprima.js)" jshint.js="$(uglifyjs -nc < jshint/jshint.js)"
+' "$base" esprima.js="$(uglifyjs $uglify_options < esprima/esprima.js)" jshint.js="$(uglifyjs $uglify_options < jshint/jshint.js)"
