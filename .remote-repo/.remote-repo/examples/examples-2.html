@@ -1,0 +1,98 @@
+<!DOCTEST html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Example</title>
+    <script src="../doctest.js"></script>
+    <script type="text/javascript" src="../resources/toc.js"></script>
+    <link rel="stylesheet" type="text/css" href="../resources/doc.css" />
+    <script src="../esprima/esprima.js"></script>
+    <link rel="stylesheet" href="../doctest.css" type="text/css">
+  </head>
+  <body class="autodoctest">
+
+<!-- HEADER -->
+<!-- /HEADER -->
+<pre class="doctest">
+$ print('hey you')
+hey you
+$ print({'whatever': 'example', something: [1, 2, 3]});
+{something: [1, 2, 3], whatever: "example"}
+$ print(1/0)
+NaN
+$ function foo() {
+>   console.log({hey: 'you'});
+>   throw 'whatever';
+> }
+> foo();
+Error: whatever
+</pre>
+
+<pre class="commenttest">
+print(1+2)
+/* =>
+   3
+*/
+
+function testme() {
+  setTimeout(function () {
+    print('hey you!');
+  }, 10);
+}
+testme();
+wait(200);
+/* => hey you! */
+</pre>
+
+<pre class="commenttest" href="example-2.js"></pre>
+
+<pre class="commenttest">
+function stop() {
+  throw Abort();
+}
+
+print(1+2);
+/* => 3 */
+
+stop();
+/* => something */
+
+print(5+5);
+/* => 12 */
+</pre>
+
+<!-- FOOTER --></div>
+
+<h3>Download</h3>
+<p>
+ You can download this project in either
+ <a href="http://github.com/ianb/doctestjs/zipball/master">zip</a> or
+ <a href="http://github.com/ianb/doctestjs/tarball/master">tar</a> formats.
+</p>
+
+<p>You can also clone the project with <a href="http://git-scm.com">Git</a>
+ by running:
+ <pre>$ git clone git://github.com/ianb/doctestjs</pre>
+</p>
+
+<div class="footer">
+ get the source code on GitHub:
+ <a href="http://github.com/ianb/doctestjs">ianb/doctestjs</a>
+</div>
+
+</div>
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-6731441-12");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+<!-- /FOOTER -->
+
+
+  </body>
+</html>
