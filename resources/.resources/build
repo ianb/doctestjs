@@ -2,6 +2,7 @@
 
 set -ex
 
+mv .resources/CNAME CNAME
 echo `pwd`
 ls -l .resources
 mv .resources resources
@@ -17,5 +18,3 @@ for file in $files ; do
 done
 
 ls -l resources
-
-mv resources/CNAME CNAME
