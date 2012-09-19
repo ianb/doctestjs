@@ -12,3 +12,5 @@ python resources/retemplate.py $files
 for file in $files ; do
     sed -i '' 's/\.resources/resources/g' $file
 done
+
+mv resources/CNAME CNAME
