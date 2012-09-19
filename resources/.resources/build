@@ -2,6 +2,8 @@
 
 set -ex
 
+echo `pwd`
+ls -l .resources
 mv .resources resources
 
 echo "Updating files with template..."
@@ -13,5 +15,4 @@ for file in $files ; do
     sed -i '' 's/\.resources/resources/g' $file
 done
 
-ls resources
 mv resources/CNAME CNAME
