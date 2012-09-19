@@ -5,6 +5,7 @@ set -ex
 echo `pwd`
 ls -l .resources
 mv .resources resources
+ls -l resources
 
 echo "Updating files with template..."
 
@@ -14,5 +15,7 @@ python resources/retemplate.py $files
 for file in $files ; do
     sed -i '' 's/\.resources/resources/g' $file
 done
+
+ls -l resources
 
 mv resources/CNAME CNAME
