@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Doctest.js: unit testing for Javascript made simple</title>
 <script src="doctest.js"></script>
-<script src="esprima/esprima.js"></script>
 <script type="text/javascript" src="./.resources/toc.js"></script>
 <link rel="stylesheet" type="text/css" href="./.resources/doc.css" />
 <link rel="stylesheet" type="text/css" href="doctest.css" />
@@ -97,7 +96,7 @@ bar
 
 <pre class="commenttest">
 function factorial(n) {
-  if (typeof n != "numebr") {
+  if (typeof n != "number") {
     throw "Not a number: " + n;
   }
   if (n == 0) {
@@ -110,11 +109,9 @@ function factorial(n) {
 print(factorial(3))
 /* => 6 */
 print(factorial(4))
-/* =>
-   20
-*/
+// => 20
 print(factorial('foo'))
-/* => bar */
+// ==> bar
 </pre>
 </div>
 
@@ -127,8 +124,17 @@ $ obj = [{key1: "one string", key2: "another string",
 $ print(obj);
 $ // To really force the pretty printing:
 > print(repr({key: [1, 2, 3]}, '', 1));
+{
+  key: [
+    3,
+    2,
+    1
+  ]
+}
 </pre>
 </div>
+
+<div>Note when there is a sufficiently large "expected" text and there is a partial match that it tries to show the difference on a line-by-line basis.  If you use <code>...</code> the line-by-line comparison doesn't always work, but it often helps.</div>
 
 <div>There's not much in the HTML that you don't see right there.  If you did <i>view source</i> you'd see something like this:
 
@@ -162,7 +168,7 @@ Note that you don't have to quote <code>></code> as <code>&amp;gt;</code> -- it'
 <div><b>Comments:</b> you can include comments anywhere, if you just want a comment in your test, do:
   <pre>$ // look ma, nothing's executed!</pre>
 
-  If you are using <code>commenttest</code> then only the exact form <code>/* => ... */</code> is treated as expected output (including meaning that <code>// => ...</code> is not treated as output).
+  If you are using <code>commenttest</code> then only comments that start with <code>=></code> or <code>==></code> will be used as expected output.
 </div>
 
 <h3>Exceptions and Logging</h3>
@@ -181,7 +187,7 @@ Error: TypeError: parent.getElementsByTagName is not a function
 
 </div>
 
-<div> Unfortunately this hides the traceback.  Doctest will try to print the traceback to the console, but it's not always the best traceback.</div>
+<div> Unfortunately this hides the traceback.  Doctest will try to print the traceback to the console (as you can see here labeled as "Exception Stack"), but it's not always the best traceback.  The traceback is never matched against.</div>
 
 <div>You can also use <code>console.log()</code> liberally.  In addition to showing up in the console, this activity is captured on a per-statement basis, and displayed next to failing tests (generally in blue).  This makes it easier to focus just on the log messages that tell you about what went wrong, ignoring all the messages about what went right.</div>
 
@@ -189,7 +195,7 @@ Error: TypeError: parent.getElementsByTagName is not a function
 
 <div>You don't need to do a lot to structure your page.  You should include <code>doctest.js</code> and <code>doctest.css</code>.  You should use <code>&lt;pre class="doctest/commenttest"&gt;</code>.  In between tests a little explanation of what you are testing can be helpful, and HTML in the body that doesn't match something specific for doctest will be ignored.</div>
 
-<div>To have tests loaded and run automatically you should use <code>&lt;body class="autodoctest"&gt;</code> - without it you'll have to run doctest manually.</div>
+<div>To have tests loaded and run automatically you should use <code>&lt;body class="autodoctest"&gt;</code> - without it you'll have to run doctest manually by invoking a bunch of <code>doctest.</code> classes, which isn't really even documented.</div>
 
 <div>If you have an element with the id <code>doctest-output</code> that will be used to keep the report of success and failure.  If you don't have such an element, doctest will create one at the top of the page.</div>
 
@@ -200,7 +206,7 @@ Error: TypeError: parent.getElementsByTagName is not a function
 <div>If you want to include a test without putting it inline in your page you can use:
 
 <pre>
-&lt;pre class="commenttest" href="test1.js"&gt;&lt;/pre&gt;
+&lt;pre class="commenttest" src="test1.js"&gt;&lt;/pre&gt;
 </pre>
 
 and the Javascript in <code>test1.js</code> will be inlined into the <code>pre</code> element before running the test.
@@ -216,7 +222,7 @@ $ print(server)
 ...
 </pre>
 
-Then use <code>?server=http://realproductionserver.com</code> to override that location.  You'll note the <code>print(server)</code> which doesn't test anything, but once you actually run the test doctest will notice how vague your expected output was (i.e., anything with <code>...</code> in it) and while succeeding it will still show the actual output for your inspection.  This can be helpful when you want to view parameters of your test in case of later errors.
+Then use <code>?server=http://realproductionserver.com</code> to override that location.  You'll note the <code>print(server)</code> which doesn't test anything, but once you actually run the test doctest will notice that you didn't match the output exactly and will still show the actual output for your inspection.  This can be helpful when you want to view/debug parameters of your test in case of later errors.
 </div>
 
 <h3>Asynchronous Calls and delays</h3>
@@ -288,7 +294,9 @@ A Spy is kind of a mock object that tracks when it is called (and any time it is
 
 <div>If you use <code>throw Abort('reason')</code> (or simply call <code>Abort('reason')</code>) then all further tests will be skipped. This can also be thrown in callbacks.  Simply calling or instantiating the object will stop tests.</div>
 
-<h3>Spy/Mock</h3>
+<h3>Testing Utilities</h3>
+
+<h4>Spy/Mock</h4>
 
 <div>Also included is a simple mock object called <code>Spy</code>. This object can be called, and you can check if it is called and how.</div>
 
@@ -386,7 +394,56 @@ $ funcWithCallback(Spy('test', {wait: true}));
   </dl>
 </div>
 
-<h3>Object Diff</h3>
+<h4>jshint</h4>
+
+<div>
+  <a href="http://www.jshint.com/about/">JsHint</a> is a tool for checking your Javascript code.  Besides simple syntax checking, it tests for a variety of style issues.  You can run this directly in your tests, which is helpful for giving feedback for any regressions you create while doing your testing..
+</div>
+
+<div>
+  The basic pattern is simply: <code>jshint('myscript.js', {options})</code>.  This will print out a report of any problems, or print out <code>Script passed: full/url/of/myscript.js</code>.  You can match against the output as well, if you want to ignore warnings.
+</div>
+
+<div>
+  The <code>{options}</code> are all optional, and are taken from <a href="http://www.jshint.com/options/">this list of jshint options</a>.  These are generally all problems you can ignore if you wish, e.g., <code>{laxbreak: true}</code> will suppress some warnings about line breaks.
+</div>
+
+<div>
+  When you give <code>'myscript.js'</code> doctest will look through all your <code>&lt;script&gr;</code> tags for the full URL of the script you want to test.  The script is then fetched via XMLHttpRequest and tested.
+</div>
+
+<div>
+  An example:
+  <pre class="commenttest">
+jshint('doctest.js', {evil: true, curly: true, forin: true,
+       undef: true, laxbreak: true, shadow: true, browser: true});
+/* =>
+Script failed: ".../doctest.js"
+  ?:? Don't use 'with'.
+            with (context) {
+*/
+  </pre>
+
+  Note we match for the <code>Don't use 'with'</code> because doctest.js itself happens to <em>need</em> to use <code>with</code> and it can't be helped.  Note that instead of the options like <code>{evil: true}</code> we could have put the comment <code>/*jshint evil:true */</code> in the source file.
+</div>
+
+<h4>NosyXMLHttpRequest</h4>
+
+<div>
+  This is a wrapper for <code>XMLHttpRequest</code> that prints out what happens while letting the real request through.  Think of it as a custom Spy for XHR.  You might use it like:
+
+  <pre>
+    XMLHttpRequest = NosyXMLHttpRequest.factory('XMLHttpRequest');
+  </pre>
+
+  Or if your script allows injection of an XHR replacement, you can use that.  This will print out any calls to XHR that mutate the request.  This does not print out the response (maybe it should), but if you print the request object itself it shows useful information. Note that XMLHttpRequest objects can also be usefully printed, but don't contain some information like the request URL.
+</div>
+
+<div>
+  If you want to completely mock out XMLHttpRequest, doing no actual requests to a server, I'd recommend using <a href="https://github.com/philikon/MockHttpRequest">MockHttpRequest</a>.
+</div>
+
+<h4>Object Diff</h4>
 
 <div>
 A helper is included to make a diff of objects.  This can help to view and test state changes.
@@ -462,29 +519,23 @@ a: 10 -> 11
 
   <li>A clear, documented way to plug in different output comparison tools.  Pure string literal comparison is just one not-so-great way. Also clarify how <code>repr()</code> works and can be extended. </li>
 
+  <li>Including new <code>repr()</code> handlers is always good - including specific code for, say, jQuery would not be unreasonable.</li>
+
   <li>Experiment with driving an iframe using doctests, for site functional/integration testing.</li>
 
-  <li>Handle the unstable nature of anchor links to specific failures: these should either be stable (link everything upfront?) or have some fallback.</li>
+  <li>Write a real tutorial, this document is too unstructured.</li>
 
-  <li>Document <code>doctest.params</code>.  And organize this document better.</li>
+  <li>Improve the Node.js support.  It <em>just barely</em> works, and loses lots of the pleasantness of the browser experience.  Perhaps it could just produce an HTML page?</li>
+
+  <li>Figure out a way to hotlink directly to edit the tests or errors.  Maybe just pluggable (e.g., to Cloud9).</li>
+
+  <li>Make skipping work better.  Now that the tests are more "flat" you can only skip giant chunks or give up on testing altogether.  It would be nice to skip "to" some destination.  Note that conditionals don't work.</li>
 
 </ol>
 
 <h3 href="examples.html">Examples</h3>
 
 <!-- FOOTER --></div>
-
-<h3>Download</h3>
-<div>
- You can download this project in either
- <a href="http://github.com/ianb/doctestjs/zipball/master">zip</a> or
- <a href="http://github.com/ianb/doctestjs/tarball/master">tar</a> formats.
-</div>
-
-<div>You can also clone the project with <a href="http://git-scm.com">Git</a>
- by running:
- <pre>$ git clone git://github.com/ianb/doctestjs</pre>
-</div>
 
 <div class="footer">
  get the source code on GitHub:
