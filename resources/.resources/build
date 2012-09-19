@@ -13,4 +13,5 @@ for file in $files ; do
     sed -i '' 's/\.resources/resources/g' $file
 done
 
+ls resources
 mv resources/CNAME CNAME
