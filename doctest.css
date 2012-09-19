@@ -46,10 +46,6 @@ pre.doctest.doctest-some-failure, pre.commenttest.doctest-some-failure {
     padding-left: 1em;
 }
 
-.doctest-example .doctest-output {
-    font-weight: bold;
-}
-
 .doctest-example .doctest-description {
     color: #000;
     font-weight: bold;
@@ -91,29 +87,4 @@ a.doctest-failure-link:visited {
 
 a.doctest-failure-link:hover {
     text-decoration: underline;
-}
-
-/* Comparison table */
-
-.doctest-comparison-table {
-    /* FIXME: why won't this border work? */
-    border: 1px solid #00;
-}
-
-.doctest-comparison-header th {
-    background-color: #000;
-    color: #fff;
-}
-
-.doctest-comparison-error td {
-    background-color: #fdd;
-}
-
-td.doctest-comparison-got {
-    padding-right: 1em;
-    color: #060;
-}
-
-td.doctest-comparison-expected {
-    color: #900;
 }
