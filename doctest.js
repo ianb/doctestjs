@@ -334,7 +334,7 @@ repr.ReprClass = function (indentString, maxLen) {
 };
 
 repr.ReprClass.prototype = {
-  defaultMaxLen: 120,
+  defaultMaxLen: 80,
 
   repr: function (o, indentString) {
     if (indentString === undefined) {
@@ -827,6 +827,9 @@ Runner.prototype = {
       this._currentExample.check();
       this._currentExample = null;
       if (this._abortCalled) {
+        // FIXME: this should show that while finished, and maybe successful,
+        // the tests were aborted
+        this._finish();
         break;
       }
     }
@@ -880,6 +883,13 @@ Runner.prototype = {
   },
 
   _finish: function () {
+    if (attemptedHash && location.hash == attemptedHash) {
+      // This fixes up the anchor position after tests have run.
+      // FIXME: would be nice to detect if the user has scrolled between
+      // page load and the current moment
+      location.hash = '';
+      location.hash = attemptedHash;
+    }
     this._hook('finish', this);
   },
 
@@ -1434,6 +1444,10 @@ var Spy = exports.Spy = function (name, options, extraOptions) {
   self.methods = function (props) {
     for (var i in props) {
       if (props.hasOwnProperty(i)) {
+        var prop = props[i];
+        if (prop === true || prop === false || prop === null) {
+          prop = {};
+        }
         self.method(i, props[i]);
       }
     }
@@ -1688,6 +1702,8 @@ function printWrap(realObject, methodName, objectName, before) {
 
 var positionOnFailure = null;
 
+var attemptedHash = null;
+
 if (typeof location != 'undefined') {
 
   (function (params) {
@@ -1724,6 +1740,9 @@ if (typeof location != 'undefined') {
   if (location.hash.indexOf('#example') === 0) {
     positionOnFailure = location.hash.substr(1);
     location.hash = '';
+  } else if (location.hash) {
+    // Anchors get all mixed up because we move content around on the page
+    attemptedHash = location.hash;
   }
 }
 
