@@ -1068,7 +1068,21 @@ HTMLParser.prototype = {
     }
     var pending = 0;
     argsToArray(els).forEach(function (el) {
-      var href = el.getAttribute('href');
+      var href = el.getAttribute('data-href-pattern');
+      if (href) {
+        try {
+          href = this.fillPattern(href);
+        } catch (e) {
+          var text = '// Error resolving data-href-pattern"' + href + '":\n';
+          text += '// ' + e;
+          el.innerHTML = '';
+          el.appendChild(document.createTextNode(text));
+          return;
+        }
+      }
+      if (! href) {
+        href = el.getAttribute('href');
+      }
       if (! href) {
         href = el.getAttribute('src');
       }
@@ -1099,10 +1113,44 @@ HTMLParser.prototype = {
         }
       };
       req.send();
-    });
+    }, this);
     if (! pending) {
       callback();
     }
+  },
+
+  fillPattern: function (pattern) {
+    var regex = /\{([^\}]+)\}/;
+    var result = '';
+    while (true) {
+      var match = regex.exec(pattern);
+      if (! match) {
+        result += pattern;
+        break;
+      }
+      result += pattern.substr(0, match.index);
+      pattern = pattern.substr(match.index + match[0].length);
+      var name = match[1];
+      var restriction = null;
+      var defaultValue = '';
+      if (name.lastIndexOf('|') != -1) {
+        defaultValue = name.substr(name.lastIndexOf('|')+1);
+        name = name.substr(0, name.lastIndexOf('|'));
+      }
+      if (name.indexOf(':') != -1) {
+        restriction = name.substr(name.indexOf(':')+1);
+        name = name.substr(0, name.indexOf(':'));
+      }
+      var value = params[name];
+      if (! value) {
+        value = defaultValue;
+      }
+      if (restriction && value.search(new RegExp(restriction)) == -1) {
+        throw 'Bad substitution for {' + name + ':' + restriction + '}: "' + value + '"';
+      }
+      result += value;
+    }
+    return result;
   }
 
 };
@@ -1394,7 +1442,12 @@ var Spy = exports.Spy = function (name, options, extraOptions) {
       throw throwError;
     }
     if (self.applies) {
-      return self.applies.apply(this, arguments);
+      try {
+        return self.applies.apply(this, arguments);
+      } catch (e) {
+        console.error('Error in ' + this.repr() + '.applies:', e);
+        throw e;
+      }
     }
     return self.returns;
   };
@@ -1488,6 +1541,39 @@ var Spy = exports.Spy = function (name, options, extraOptions) {
 
 Spy.spies = {};
 Spy.defaultOptions = {writes: true};
+
+Spy.on = function (obj, attrOrOptions, options) {
+  if (typeof obj == "string") {
+    var name = obj;
+    if (obj.indexOf('.') == -1) {
+      throw 'You must provide an object name with a .attribute (not: "' + obj + '")';
+    }
+    var attr = obj.substr(obj.lastIndexOf('.')+1);
+    var objName = obj.substr(0, obj.lastIndexOf('.'));
+    var e = eval;
+    try {
+      var obj = eval(objName);
+    } catch (e) {
+      throw 'Could not get object "' + obj + '": ' + e + ' (maybe you are not referring to a global variable?)';
+    }
+    if (obj === undefined || obj === null) {
+      throw 'Object "' + objName + '" is ' + obj;
+    }
+    options = attrOrOptions;
+  } else {
+    var name = attrOrOptions;
+    if (name.indexOf('.') == -1) {
+      throw 'You must provide an object name with a .attribute (not: "' + obj + '")';
+    }
+    attr = attrOrOptions.substr(attrOrOptions.lastIndexOf('.')+1);
+  }
+  var spy = Spy(name, options);
+  spy.overriding = obj[attr];
+  spy.onAttribute = attr;
+  spy.onObject = obj;
+  obj[attr] = spy;
+  return spy;
+};
 
 var params = exports.params = {};
 
