@@ -1,54 +1,39 @@
 ## doctest.js
 
 For a more complete description please [read the main
-page](http://ianb.github.com/doctestjs/).
+page](http://doctestjs.org).
 
-`doctest.js` is a test runner for Javascript, inspired by Python's
-[doctest](http://docs.python.org/library/doctest.html).
-
-The tests are embedded in an HTML page, and look like what Javascript
-might look like if you are using an interactive prompt.  An example of
-a test (note `$` is uesd as a prompt, `>` as a continuation prompt):
+`doctest.js` is a test runner for Javascript, organized around *examples* and *expected result*.  Tests look like this:
 
 ```javascript
-$ // You can do really simple tests...
-$ print(3 * 4);
-12
-$ // Or more complicated tests...
-$ var complete = false;
-$ var savedResult = null;
-$ $.ajax({ // don't get confused by the two uses of $ here
->   url: "/test",
->   dataType: "json",
->   success: function (result) {
->     complete = true;
->     savedResult = result;
->   }
-> });
-$ wait(function () {return complete;});
-$ print(savedResult);
-{value1: "something", value2: true}
+// Simple stuff:
+print(3 * 4);
+// => 12
+
+// Or complicated stuff:
+var complete = false;
+var savedResult = null;
+$.ajax({
+  url: "/test",
+  dataType: "json",
+  success: function (result) {
+    complete = true;
+    savedResult = result;
+  }
+});
+wait(function () {return complete;});
+print(savedResult);
+// => {value1: "something", value2: true}
 ```
 
-Also included is a simple mock object.  An example of using it:
+And a bunch more features: check out the [tutorial](http://doctestjs.org/tutorial.html) to get started, or read the [reference](http://doctestjs.org/reference.html) for more detail.
 
-```javascript
-$ $.ajax({
->   url: "/test",
->   dataType: "json",
->   success: Spy('success', {wait: true})
-> });
-success({value1: "something", value2: true})
-```
+## License
 
-You can also write the Javascript with comments to show the expected output:
+Doctest.js is released under an MIT-style license.
 
-```javascript
-function factorial(n) {
-  return n == 1 ? 1 : n * factorial(n-1);
-}
-print(factorial(3))
-/* => 6 */
-```
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-For more and better (and live) examples see [the doctest.js website](http://ianb.github.com/doctestjs/).
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
