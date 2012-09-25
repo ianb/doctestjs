@@ -1486,7 +1486,6 @@ var Spy = exports.Spy = function (name, options, extraOptions) {
   self.writes = options.writes || false;
   self.returns = options.returns || undefined;
   self.applies = options.applies || null;
-  self.binds = options.binds || null;
   self.throwError = options.throwError || null;
   self.ignoreThis = options.ignoreThis || false;
   self.wrapArgs = options.wrapArgs || false;
