@@ -20,6 +20,10 @@ i, em {
     padding-left: 1em;
 }
 
+.header-container header {
+    width: 98%;
+}
+
 code {
     color: #288;
 }
