@@ -27,15 +27,13 @@ alt="Fork me on GitHub"></a>
       <header class="wrapper clearfix">
         <h1 class="title"><a href="/">Doctest.js</a>: <!-- TITLE -->the reference<!-- /TITLE --></h1>
 
-        <!--
           <nav>
             <ul>
-              <li><a href="#">nav ul li a</a></li>
-              <li><a href="#">nav ul li a</a></li>
-              <li><a href="#">nav ul li a</a></li>
+              <li><a href="https://github.com/ianb/doctestjs">Github</a></li>
+              <li><a href="/reference.html">Reference</a></li>
+              <li><a href="/tutorial.html">Tutorial</a></li>
             </ul>
           </nav>
-          -->
 
       </header>
     </div>
@@ -54,11 +52,11 @@ Author: Ian Bicking,
 
 <div id="contents"></div>
 
-<h3>Format of test</h3>
+<h3 id="format">Format of test</h3>
 
 <p>There are two formats that a doctest can take.  You've probably seen the <code>commenttest</code> format, there is also the more traditional <code>doctest</code> format.</p>
 
-<h4><code>doctest</code> format</h4>
+<h4 id="format-doctest"><code>doctest</code> format</h4>
 
 <p>This format is used like:
 
@@ -76,7 +74,7 @@ output
 
 <p>Note you can still have multiple statements using a continuation line.  The only difference between two lines with <code>$</code> and one with a <code>$</code> followed by <code>></code> is that in the latter case the two lines are executed <em>together</em> and the output from both is combined into what is expected.</p>
 
-<h4><code>commenttest</code> format</h4>
+<h4 id="format-commenttest"><code>commenttest</code> format</h4>
 
 <p>In this format the expected output is in a comment, like:
 
@@ -108,7 +106,7 @@ expected output
 
 <p>You can have one or more <code>=</code>'s.  The text <code>A section header</code> will become a header.  Each section header turns into a new <code>&lt;pre></code> element.</p>
 
-<h3>Printing/writing</h3>
+<h3 id="print">Printing/writing</h3>
 
 <p>The <code>print()</code> function is pretty important, of course. (Note it also was called <code>writeln()</code>, a name which is still supported).</p>
 
@@ -153,13 +151,13 @@ doctest.repr.ReprClass.prototype.registry.push([
 
 <p>Arrays and objects are displayed like you'd think.  This might include objects that you might not think of as "plain" objects.  Also the object prototype is not displayed.  You'll have to use something like <code>print(o.constructor)</code> if you want to be specific about classes.</p>
 
-<h3><code>console.log()</code></h3>
+<h4 id="console"><code>console.log()</code></h3>
 
 <p><code>console.log()</code> works a lot like <code>print()</code>. But unlike <code>print()</code> it doesn't make a test pass or fail, it's purely informative.</p>
 
 <p>All the methods on console should work, like <code>console.warn()</code>.  The underlying normal console function is called, but in addition on a test-by-test basis these are collected and displayed.</p>
 
-<h3>Output matching</h3>
+<h3 id="matching">Output matching</h3>
 
 <p>The <em>expected</em> output is compared with the output you actually <em>got</em> (received).</p>
 
@@ -173,7 +171,7 @@ doctest.repr.ReprClass.prototype.registry.push([
 
 <p>When you have a large expected text and got a lot of text, and that text differs just a bit, you'll see a line-by-line comparison of the two, to help you identify exactly where the problem is.  Note if you use wildcards the line-by-line comparison might be very inaccurate.</p>
 
-<h3><code>wait()</code>, async code, and pausing the tests</h3>
+<h3 id="wait"><code>wait()</code>, async code, and pausing the tests</h3>
 
 <p>Often you'll want to let code run for a while on its own before you are done with testing a section of code.  I.e., you want to let all the requests complete, DOM elements update, and so forth.</p>
 
@@ -238,7 +236,7 @@ Now you practically know how to write doctest yourself!
   <dd>This calls condition up until <code>timeout</code> milliseconds. You can use this to extend the timeout.  The default timeout is 5 seconds (5000).</dd>
 </dl>
 
-<h3>Spy, mocking, and watching functions</h3>
+<h3 id="spy">Spy, mocking, and watching functions</h3>
 
 <p><code>Spy</code> is used to create a mock object/function that can be used to track calls and inspect call order and arguments.</p>
 
@@ -282,7 +280,7 @@ func(1, 2, 3)
 
 <p>Note that your function can raise an exception, and the Spy will pass it through (though also note the exception using <code>console.log()</code>).  You can use this to inspect how a library reacts to exceptions in callbacks.</p>
 
-<h4>Spy options</h4>
+<h4 id="spy-options">Spy options</h4>
 
 <p>The options available:</p>
 
@@ -315,7 +313,7 @@ func(1, 2, 3)
 
 <p>You can also change <code>Spy.defaultOptions</code> if you want to override one option by default, for instance to turn off printing or ignore <code>this</code>.</p>
 
-<h4>Spy methods</h4>
+<h4 id="spy-methods">Spy methods</h4>
 
 <p>Several methods are available:</p>
 
@@ -369,7 +367,7 @@ print(aSpy.formatCall());
 
 </dl>
 
-<h4>Spy attributes</h4>
+<h4 id="spy-attributes">Spy attributes</h4>
 
 <p>Spies have several attributes to inspect how they have been called:</p>
 
@@ -383,7 +381,13 @@ print(aSpy.formatCall());
 </dl>
 
 
-<h3>jshint</h3>
+<h3 id="abort">Aborting your tests</h3>
+
+<p>Tests often has prerequesites.  Perhaps some browsers aren't supported.  Maybe you need a server setup.  Normally doctest will run through all the tests regardless of failures, but when basic prerequesites are missing this creates lots of chatter and failures with no purpose.</p>
+
+<p>To stop the tests from running call <code>Abort()</code>.  This will still run the rest of the test block (up until the next <code>// =></code>).</p>
+
+<h3 id="jshint">jshint</h3>
 
 <p>A helper is provided to help you run <a href="http://www.jshint.com/">JSHint</a> regularly on your code. Just do this:</p>
 
@@ -401,6 +405,19 @@ jshint("source-filename");
 </pre>
 
 </p>
+
+<h3 id="nosyxmlhttprequest"><code>NosyXMLHttpRequest</code></h3>
+
+<p>Sometimes you may want to watch the progress of XMLHttpRequest requests &mdash; both how the request is constructed and its result. You can use <code>NosyXMLHttpRequest</code> to wrap request objects.</p>
+
+<p>You probably want to use it like:
+
+<pre>
+XMLHttpRequest = NosyXMLHttpRequest.factory("request");
+</pre>
+</p>
+
+<p>The name will be used when showing output (e.g., <code>request.setRequestHeader('X-Something', 'value')</code>).</p>
 
 
 <div style="display: none">
@@ -421,7 +438,7 @@ jshint("source-filename");
 
     <div class="footer-container">
       <footer class="wrapper">
-        <h3>doctest.js is by <a href="http://ianbicking.org">Ian Bicking</a>.
+        <h3 class="no-toc">doctest.js is by <a href="http://ianbicking.org">Ian Bicking</a>.
           It's on <a href="https://github.com/ianb/doctestjs">github</a>!</h3>
       </footer>
     </div>

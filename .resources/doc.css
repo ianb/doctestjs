@@ -2,6 +2,24 @@ i, em {
     font-family: serif;
 }
 
+#contents ul {
+    margin-bottom: 0;
+    margin-top: 0;
+}
+
+#contents > ul {
+    padding-left: 0;
+}
+
+#contents li {
+    list-style: none;
+}
+
+#contents {
+    border-bottom: 1px solid #999;
+    padding-left: 1em;
+}
+
 code {
     color: #288;
 }
@@ -11,7 +29,7 @@ aside code {
 }
 
 section:target h1, section:target h2, section:target h3, section:target h4,
-section:target h5, section:target h6 {
+section:target h5, section:target h6, h3:target, h4:target {
     border-bottom: 3px solid #f90;
 }
 

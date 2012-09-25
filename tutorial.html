@@ -12,7 +12,9 @@
       <link rel="stylesheet" href=".resources/boilerplate/css/main.css">
       <link rel="stylesheet" href=".resources/doc.css">
       <script src=".resources/boilerplate/js/vendor/modernizr-2.6.1.min.js"></script>
-      <!-- EXTRA_HEAD --><!-- /EXTRA_HEAD -->
+      <!-- EXTRA_HEAD -->
+      <script type="text/javascript" src="./.resources/toc.js"></script>
+      <!-- /EXTRA_HEAD -->
     </head>
     <body class="autodoctest">
 
@@ -25,15 +27,13 @@ alt="Fork me on GitHub" /></a>
         <header class="wrapper clearfix">
           <h1 class="title">Doctest.js: <!-- TITLE -->A Tutorial <!-- /TITLE --></h1>
 
-          <!--
           <nav>
             <ul>
-              <li><a href="#">nav ul li a</a></li>
-              <li><a href="#">nav ul li a</a></li>
-              <li><a href="#">nav ul li a</a></li>
+              <li><a href="https://github.com/ianb/doctestjs">Github</a></li>
+              <li><a href="/reference.html">Reference</a></li>
+              <li><a href="/tutorial.html">Tutorial</a></li>
             </ul>
           </nav>
-          -->
 
         </header>
       </div>
@@ -42,6 +42,8 @@ alt="Fork me on GitHub" /></a>
         <div class="main wrapper clearfix">
 
 <!-- BODY -->
+
+<div id="contents"></div>
 
           <article>
             <section id="introduction">
@@ -156,6 +158,10 @@ factorial(null);
     <h3><code>print()</code> and output matching</h3>
   </header>
 
+<aside>
+  <p>For more detail on printing see <a href="reference.html#print">the reference</a>.</p>
+</aside>
+
 <p>
 
 <code>print()</code> pretty-prints things.  This is important, because you have to "expect" the same output that <code>print()</code> produces.  You can give multiple arguments, like with <code>console.log</code>.
@@ -231,6 +237,10 @@ Think of this pattern of <code>print(x == y)</code> as a kind of <code>assertEqu
     <h3>Testing async code</h3>
   </header>
 
+<aside>
+  <p>For more on async and <code>wait</code> see <a href="reference.html#wait">the reference</a>.</p>
+</aside>
+
 <p>
 
 This is all well and good, but lots of code in Javascript is <em>asynchronous</em>, meaning that you don't just call a function that returns a value.  Doctest.js has an answer to that too: a great answer!
@@ -295,6 +305,10 @@ Another thing to note is that <code>wait()</code> needs to be called when that b
   <header>
     <h3>The Spy</h3>
   </header>
+
+<aside>
+  <p>For more information on <code>Spy</code> see <a href="reference.html#spy">the reference</a>.</p>
+</aside>
 
 <p>
 
@@ -515,6 +529,10 @@ $.ajax({
   <header>
     <h2>Setting Up Your HTML</h2>
   </header>
+
+<aside>
+  <p>For more on the HTML setup see <a href="reference.html#format">the reference documentation</a>.</p>
+</aside>
 
 <p>
 
