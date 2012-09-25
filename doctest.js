@@ -1097,21 +1097,20 @@ HTMLParser.prototype = {
       }
       req.open('GET', href);
       req.setRequestHeader('Cache-Control', 'no-cache, max-age=0');
-      req.onreadystatechange = function () {
+      req.onreadystatechange = (function () {
         if (req.readyState != 4) {
           return;
         }
-        el.innerHTML = '';
         if (req.status != 200) {
-          el.appendChild(doc.createTextNode('Error fetching ' + href + ' status: ' + req.status));
+          el.appendChild(doc.createTextNode('\n// Error fetching ' + href + ' status: ' + req.status));
         } else {
-          el.appendChild(doc.createTextNode(req.responseText));
+          this.fillElement(el, req.responseText);
         }
         pending--;
         if (! pending) {
           callback();
         }
-      };
+      }).bind(this);
       req.send();
     }, this);
     if (! pending) {
@@ -1151,6 +1150,74 @@ HTMLParser.prototype = {
       result += value;
     }
     return result;
+  },
+
+  fillElement: function (el, text) {
+    el.innerHTML = '';
+    if (hasClass(el, 'commenttest')) {
+      var texts = this.splitText(text);
+      console.log('result', texts);
+      if (texts && texts.length) {
+        text = texts[0].body;
+        if (texts[0].header) {
+          h3 = document.createElement('h3');
+          h3.className = 'doctest-section-header';
+          h3.appendChild(document.createTextNode(texts[0].header));
+          el.parentNode.insertBefore(h3, el);
+        }
+        // Ignore first header I guess
+        for (var i=1; i<texts.length; i++) {
+          var pre = document.createElement('pre');
+          pre.className = el.className;
+          pre.appendChild(document.createTextNode(texts[i].body));
+          el.parentNode.insertBefore(pre, el.nextSibling);
+          if (texts[i].header) {
+            var h3 = document.createElement('h3');
+            h3.className = 'doctest-section-header';
+            h3.appendChild(document.createTextNode(texts[i].header));
+            el.parentNode.insertBefore(h3, el.nextSibling);
+          }
+        }
+      }
+    }
+    el.appendChild(doc.createTextNode(text));
+  },
+
+  splitText: function (text) {
+    var ast = esprima.parse(text, {
+      range: true,
+      comment: true
+    });
+    // FIXME: check if it didn't parse
+    var result = [];
+    var pos = 0;
+    for (var i=0; i<ast.comments.length; i++) {
+      var comment = ast.comments[i];
+      if (comment.value.search(/^\s*=+\s*SECTION/) == -1) {
+        // Not a section comment
+        continue;
+      }
+      var start = comment.range[0];
+      var end = comment.range[1];
+      var body = text.substr(pos, start-pos);
+      var header = strip(comment.value.replace(/^\s*=+\sSECTION\s*/, ''));
+      if (! result.length) {
+        if (strip(body)) {
+          result.push({header: null, body: body});
+        }
+      } else {
+        result[result.length-1].body = body;
+      }
+      result.push({header: header, body: null});
+      pos = end;
+    }
+    if (! result.length) {
+      // No sections
+      return null;
+    }
+    var last = text.substr(pos, text.length-pos);
+    result[result.length-1].body = last;
+    return result;
   }
 
 };
@@ -1189,7 +1256,7 @@ TextParser.prototype = {
     var pos = 0;
     for (var i=0; i<ast.comments.length; i++) {
       var comment = ast.comments[i];
-      if (comment.value.search(/^\s*=>/) == -1) {
+      if (comment.value.search(/^\s*==?>/) == -1) {
         // Not a comment we care about
         continue;
       }
