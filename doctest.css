@@ -96,8 +96,13 @@ a.doctest-failure-link:hover {
 /* Comparison table */
 
 .doctest-comparison-table {
-    /* FIXME: why won't this border work? */
-    border: 1px solid #00;
+    border: 1px solid #000;
+    /* FIXME: not sure why this doesn't keep the table limited to 100% */
+    width: 100%;
+}
+
+.doctest-comparison-table td {
+    overflow: auto;
 }
 
 .doctest-comparison-header th {

@@ -334,7 +334,7 @@ repr.ReprClass = function (indentString, maxLen) {
 };
 
 repr.ReprClass.prototype = {
-  defaultMaxLen: 120,
+  defaultMaxLen: 80,
 
   repr: function (o, indentString) {
     if (indentString === undefined) {
@@ -827,6 +827,9 @@ Runner.prototype = {
       this._currentExample.check();
       this._currentExample = null;
       if (this._abortCalled) {
+        // FIXME: this should show that while finished, and maybe successful,
+        // the tests were aborted
+        this._finish();
         break;
       }
     }
@@ -880,6 +883,13 @@ Runner.prototype = {
   },
 
   _finish: function () {
+    if (attemptedHash && location.hash == attemptedHash) {
+      // This fixes up the anchor position after tests have run.
+      // FIXME: would be nice to detect if the user has scrolled between
+      // page load and the current moment
+      location.hash = '';
+      location.hash = attemptedHash;
+    }
     this._hook('finish', this);
   },
 
@@ -1058,7 +1068,21 @@ HTMLParser.prototype = {
     }
     var pending = 0;
     argsToArray(els).forEach(function (el) {
-      var href = el.getAttribute('href');
+      var href = el.getAttribute('data-href-pattern');
+      if (href) {
+        try {
+          href = this.fillPattern(href);
+        } catch (e) {
+          var text = '// Error resolving data-href-pattern"' + href + '":\n';
+          text += '// ' + e;
+          el.innerHTML = '';
+          el.appendChild(document.createTextNode(text));
+          return;
+        }
+      }
+      if (! href) {
+        href = el.getAttribute('href');
+      }
       if (! href) {
         href = el.getAttribute('src');
       }
@@ -1073,26 +1097,127 @@ HTMLParser.prototype = {
       }
       req.open('GET', href);
       req.setRequestHeader('Cache-Control', 'no-cache, max-age=0');
-      req.onreadystatechange = function () {
+      req.onreadystatechange = (function () {
         if (req.readyState != 4) {
           return;
         }
-        el.innerHTML = '';
         if (req.status != 200) {
-          el.appendChild(doc.createTextNode('Error fetching ' + href + ' status: ' + req.status));
+          el.appendChild(doc.createTextNode('\n// Error fetching ' + href + ' status: ' + req.status));
         } else {
-          el.appendChild(doc.createTextNode(req.responseText));
+          this.fillElement(el, req.responseText);
         }
         pending--;
         if (! pending) {
           callback();
         }
-      };
+      }).bind(this);
       req.send();
-    });
+    }, this);
     if (! pending) {
       callback();
     }
+  },
+
+  fillPattern: function (pattern) {
+    var regex = /\{([^\}]+)\}/;
+    var result = '';
+    while (true) {
+      var match = regex.exec(pattern);
+      if (! match) {
+        result += pattern;
+        break;
+      }
+      result += pattern.substr(0, match.index);
+      pattern = pattern.substr(match.index + match[0].length);
+      var name = match[1];
+      var restriction = null;
+      var defaultValue = '';
+      if (name.lastIndexOf('|') != -1) {
+        defaultValue = name.substr(name.lastIndexOf('|')+1);
+        name = name.substr(0, name.lastIndexOf('|'));
+      }
+      if (name.indexOf(':') != -1) {
+        restriction = name.substr(name.indexOf(':')+1);
+        name = name.substr(0, name.indexOf(':'));
+      }
+      var value = params[name];
+      if (! value) {
+        value = defaultValue;
+      }
+      if (restriction && value.search(new RegExp(restriction)) == -1) {
+        throw 'Bad substitution for {' + name + ':' + restriction + '}: "' + value + '"';
+      }
+      result += value;
+    }
+    return result;
+  },
+
+  fillElement: function (el, text) {
+    el.innerHTML = '';
+    if (hasClass(el, 'commenttest')) {
+      var texts = this.splitText(text);
+      console.log('result', texts);
+      if (texts && texts.length) {
+        text = texts[0].body;
+        if (texts[0].header) {
+          h3 = document.createElement('h3');
+          h3.className = 'doctest-section-header';
+          h3.appendChild(document.createTextNode(texts[0].header));
+          el.parentNode.insertBefore(h3, el);
+        }
+        // Ignore first header I guess
+        for (var i=1; i<texts.length; i++) {
+          var pre = document.createElement('pre');
+          pre.className = el.className;
+          pre.appendChild(document.createTextNode(texts[i].body));
+          el.parentNode.insertBefore(pre, el.nextSibling);
+          if (texts[i].header) {
+            var h3 = document.createElement('h3');
+            h3.className = 'doctest-section-header';
+            h3.appendChild(document.createTextNode(texts[i].header));
+            el.parentNode.insertBefore(h3, el.nextSibling);
+          }
+        }
+      }
+    }
+    el.appendChild(doc.createTextNode(text));
+  },
+
+  splitText: function (text) {
+    var ast = esprima.parse(text, {
+      range: true,
+      comment: true
+    });
+    // FIXME: check if it didn't parse
+    var result = [];
+    var pos = 0;
+    for (var i=0; i<ast.comments.length; i++) {
+      var comment = ast.comments[i];
+      if (comment.value.search(/^\s*=+\s*SECTION/) == -1) {
+        // Not a section comment
+        continue;
+      }
+      var start = comment.range[0];
+      var end = comment.range[1];
+      var body = text.substr(pos, start-pos);
+      var header = strip(comment.value.replace(/^\s*=+\sSECTION\s*/, ''));
+      if (! result.length) {
+        if (strip(body)) {
+          result.push({header: null, body: body});
+        }
+      } else {
+        result[result.length-1].body = body;
+      }
+      result.push({header: header, body: null});
+      pos = end;
+    }
+    if (! result.length) {
+      // No sections
+      return null;
+    }
+    var last = text.substr(pos, text.length-pos);
+    result[result.length-1].body = last;
+    return result;
   }
 
 };
@@ -1131,7 +1256,7 @@ TextParser.prototype = {
     var pos = 0;
     for (var i=0; i<ast.comments.length; i++) {
       var comment = ast.comments[i];
-      if (comment.value.search(/^\s*=>/) == -1) {
+      if (comment.value.search(/^\s*==?>/) == -1) {
         // Not a comment we care about
         continue;
       }
@@ -1361,7 +1486,6 @@ var Spy = exports.Spy = function (name, options, extraOptions) {
   self.writes = options.writes || false;
   self.returns = options.returns || undefined;
   self.applies = options.applies || null;
-  self.binds = options.binds || null;
   self.throwError = options.throwError || null;
   self.ignoreThis = options.ignoreThis || false;
   self.wrapArgs = options.wrapArgs || false;
@@ -1384,7 +1508,12 @@ var Spy = exports.Spy = function (name, options, extraOptions) {
       throw throwError;
     }
     if (self.applies) {
-      return self.applies.apply(this, arguments);
+      try {
+        return self.applies.apply(this, arguments);
+      } catch (e) {
+        console.error('Error in ' + this.repr() + '.applies:', e);
+        throw e;
+      }
     }
     return self.returns;
   };
@@ -1434,6 +1563,10 @@ var Spy = exports.Spy = function (name, options, extraOptions) {
   self.methods = function (props) {
     for (var i in props) {
       if (props.hasOwnProperty(i)) {
+        var prop = props[i];
+        if (prop === true || prop === false || prop === null) {
+          prop = {};
+        }
         self.method(i, props[i]);
       }
     }
@@ -1474,6 +1607,39 @@ var Spy = exports.Spy = function (name, options, extraOptions) {
 
 Spy.spies = {};
 Spy.defaultOptions = {writes: true};
+
+Spy.on = function (obj, attrOrOptions, options) {
+  if (typeof obj == "string") {
+    var name = obj;
+    if (obj.indexOf('.') == -1) {
+      throw 'You must provide an object name with a .attribute (not: "' + obj + '")';
+    }
+    var attr = obj.substr(obj.lastIndexOf('.')+1);
+    var objName = obj.substr(0, obj.lastIndexOf('.'));
+    var e = eval;
+    try {
+      var obj = eval(objName);
+    } catch (e) {
+      throw 'Could not get object "' + obj + '": ' + e + ' (maybe you are not referring to a global variable?)';
+    }
+    if (obj === undefined || obj === null) {
+      throw 'Object "' + objName + '" is ' + obj;
+    }
+    options = attrOrOptions;
+  } else {
+    var name = attrOrOptions;
+    if (name.indexOf('.') == -1) {
+      throw 'You must provide an object name with a .attribute (not: "' + obj + '")';
+    }
+    attr = attrOrOptions.substr(attrOrOptions.lastIndexOf('.')+1);
+  }
+  var spy = Spy(name, options);
+  spy.overriding = obj[attr];
+  spy.onAttribute = attr;
+  spy.onObject = obj;
+  obj[attr] = spy;
+  return spy;
+};
 
 var params = exports.params = {};
 
@@ -1688,6 +1854,8 @@ function printWrap(realObject, methodName, objectName, before) {
 
 var positionOnFailure = null;
 
+var attemptedHash = null;
+
 if (typeof location != 'undefined') {
 
   (function (params) {
@@ -1724,6 +1892,9 @@ if (typeof location != 'undefined') {
   if (location.hash.indexOf('#example') === 0) {
     positionOnFailure = location.hash.substr(1);
     location.hash = '';
+  } else if (location.hash) {
+    // Anchors get all mixed up because we move content around on the page
+    attemptedHash = location.hash;
   }
 }
 

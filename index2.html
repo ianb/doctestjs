@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="doctest.css">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title><!-- PAGE_TITLE -->Doctest.js: unit testing for Javascript made simple<!-- /PAGE_TITLE --></title>
+    <!-- <meta name="description" content="__DESCRIPTION__"> -->
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href=".resources/boilerplate/css/normalize.min.css">
+    <link rel="stylesheet" href=".resources/boilerplate/css/main.css">
+    <link rel="stylesheet" href=".resources/doc.css">
+    <script src=".resources/boilerplate/js/vendor/modernizr-2.6.1.min.js"></script>
+    <script src="doctest.js"></script>
+    <!-- EXTRA_HEAD --><!-- /EXTRA_HEAD -->
+  </head>
+  <body class="autodoctest">
+
+    <a href="http://github.com/ianb/doctestjs"><img
+style="position: absolute; top: 0; right: 0; border: 0;"
+src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png"
+alt="Fork me on GitHub"></a>
+
+    <div class="header-container">
+      <header class="wrapper clearfix">
+        <h1 class="title"><a href="/">Doctest.js</a>: <!-- TITLE -->Doctest/JS: unit testing for Javascript made simple<!-- /TITLE --></h1>
+
+        <!--
+          <nav>
+            <ul>
+              <li><a href="#">nav ul li a</a></li>
+              <li><a href="#">nav ul li a</a></li>
+              <li><a href="#">nav ul li a</a></li>
+            </ul>
+          </nav>
+          -->
+
+      </header>
+    </div>
+
+    <div class="main-container">
+      <div class="main wrapper clearfix">
+
+
+     <!-- BODY -->
+
+
+<div>
+Author: Ian Bicking,
+<a href="mailto:ian@ianbicking.org">ian@ianbicking.org</a>
+</div>
+
+<div id="contents"></div>
+
+<h3>License &amp; Download</h3>
+
+<div> This library is licensed under the [MIT license](http://www.opensource.org/licenses/mit-license.php).  You can download it from the git repository at <a href="http://github.com/ianb/doctestjs/">http://github.com/ianb/doctestjs/</a> with <code>git clone http://github.com/ianb/doctestjs.git</code> or <a href="http://github.com/ianb/doctestjs/zipball/master">download a zip</a>
+</div>
+
+<div>Bugs may be reported on the <a href="http://github.com/ianb/doctestjs/issues">issue tracker</a>. Patches are best provided by forking the repository through github.com, and then submitting a pull request.
+</div>
+
+<h3>Introduction</h3>
+
+<div> Doctest/JS is a port of a widely used testing module <a href="http://python.org/doc/current/lib/module-doctest.html"><code>doctest</code></a> from the Python world.  The original doctest is by Tim Peters.
+</div>
+
+<div> Doctest was originally written to test documentation, but it's also an embodiment of a more general pattern of example-oriented testing. Tests are made up of code and the code's output, almost as though each statement is an implicit <code>assertEqual</code>.  In fact there isn't really a need for <code>assert*</code> helpers because it is implicit in all your tests.  The doctest/example pattern means by default you'll often find yourself testing more than you intended rather than less.  Ultimately you want to test *just the right amount*, but I feel doctest errs on the right side of sensitivity.
+</div>
+
+<div> An example is in order.  These examples are all complete and have no external dependencies, but this isn't usually how you'd write your tests.  Instead you would include the <code>.js</code> file you were testing, and wouldn't define (many) functions inline in the code. But don't be shy about defining functions!  It will frequently make your tests more compact and thorough to define helper functions.</div>
+
+<div> The runner is embedded directly in the page.  Here's the report for all the tests on this page (you'll notice some failures, which are deliberate):
+
+<div id="doctest-output"></div>
+
+You'll notice the tests have already run: they run automatically on page load.
+</div>
+
+<div>Here's an example, where we will define and test a <code>factorial</code> function.  Note I've written the test to get a failure:
+
+<pre class="doctest">
+$ function factorial(n) {
+>   if (typeof n != 'number') {
+>     throw 'Not a number: '+n;
+>   }
+>   if (n == 0) {
+>     return 1;
+>   } else {
+>     return n * factorial(n-1);
+>   }
+> }
+$ print(factorial(3))
+6
+$ print(factorial(4))
+20
+$ print(factorial('foo'))
+bar
+</pre>
+</div>
+
+<div>Another way you can write the test to have plain Javascript with the output in comments:
+
+<pre class="commenttest">
+function factorial(n) {
+  if (typeof n != "number") {
+    throw "Not a number: " + n;
+  }
+  if (n == 0) {
+    return 1;
+  } else {
+    return n * factorial(n - 1);
+  }
+}
+
+print(factorial(3))
+/* => 6 */
+print(factorial(4))
+// => 20
+print(factorial('foo'))
+// ==> bar
+</pre>
+</div>
+
+<div> Also if you print out a really long object you'll get a multi-line representation:
+
+<pre class="doctest">
+$ obj = [{key1: "one string", key2: "another string",
+>         a_key: "something else", something: "more strings",
+>         and_then: "one last string"}, {}];
+$ print(obj);
+$ // To really force the pretty printing:
+> print(repr({key: [1, 2, 3]}, '', 1));
+{
+  key: [
+    3,
+    2,
+    1
+  ]
+}
+</pre>
+</div>
+
+<div>Note when there is a sufficiently large "expected" text and there is a partial match that it tries to show the difference on a line-by-line basis.  If you use <code>...</code> the line-by-line comparison doesn't always work, but it often helps.</div>
+
+<div>There's not much in the HTML that you don't see right there.  If you did <i>view source</i> you'd see something like this:
+
+<pre>
+&lt;pre class="doctest"&gt;
+$ code
+&gt; ... continuation line
+expected output
+&lt;/pre&gt;
+</pre>
+
+If you want the <code>$</code> form of test use <code>class="doctest"</code>, or if you want <code>/* => ... */</code> then use <code>class="commenttest"</code>.
+
+</div>
+
+Note that you don't have to quote <code>></code> as <code>&amp;gt;</code> -- it's a little-known HTML fact that only <code>&lt;</code> really needs to be quoted.
+</div>
+
+<div>The format with <code>$</code> prompts is intended to be like an interactive intepreter.  The actual prompts are modeled on a shell prompt, with <code>$</code> starting a statement, and <code>></code> continuing the statement.  You can make the statements long, with function definitions or multiple statements separated with <code>;</code>, and you can include comments (with <code>//</code>).</div>
+
+<div>The <i>output</i> is whatever is <code>print()'d</code>.  Also if an exception happens it will be printed out as <code>Error: ...</code>.  These error messages are matched like anything else, which makes it fairly easy to test your error conditions.  The <code>print()</code> function pretty-prints its arguments, turning objects into object-literals, writing out Arrays, and writing out canonical forms of DOM elements.  The function <code>repr()</code> is what converts objects to their fancy form.</div>
+
+<div><b>repr:</b> this is used to get the fancy representation of objects to print out.  This is an idea borrowed from Python: each object has a <i>programmer's representation</i>.  This is a helpful representation of the object, beyond simply what <code>obj.toString()</code> might return.  Arrays are displayed like <code>[obj1, obj2, ...]</code> for instance.  Generic objects are displayed as <code>{attr: value}</code>.  Objects can customize their output by defining a <code>repr()</code> method.  Note that <code>print(string)</code> doesn't use repr; if you want to check </div>
+
+<div><b><code>...</code> (ellipsis):</b> sometimes there are portions of the output that are interesting, and portions that are boring.  Or parts might be volatile -- different on every test run, like a timestamp.  You can ignore a portion of the test by using <code>...</code> in the output. All the matching is strictly textual. This will even match errors (maybe unintentionally).  For instance, if I get a big uninteresting object back I'll often use <code>{...}</code> - this will test that it is an object, but pay no attention to the object's contents.</div>
+
+<div><b><code>?</code>: (question mark)</b> this is like <code>...</code>, but it only matches one word (letters, numbers, <code>_</code>, and <code>.</code>). This is so you can do something like <code>{attr: ?}</code> and avoid accidentally matching <code>{attr: value, attr2: value}</code>.  It doesn't match quotation marks, so you may need <code>"?"</code> (more usefully though, it does match numbers, like a timestamp).</div>
+
+<div><b>Writing:</b> you usually will use <code>print()</code> to write things out.  The older name for the same thing is <code>writeln()</code>.  And if you just want to write out text without <code>repr()</code> or newlines, you can use <code>write()</code>.  You can use <code>console.log</code> as well, but its output will not be matched against.  It will however be displayed alongside each test!</div>
+
+<div><b>Comments:</b> you can include comments anywhere, if you just want a comment in your test, do:
+  <pre>$ // look ma, nothing's executed!</pre>
+
+  If you are using <code>commenttest</code> then only comments that start with <code>=></code> or <code>==></code> will be used as expected output.
+</div>
+
+<h3>Exceptions and Logging</h3>
+
+<div> It's encouraged that you test exception cases in your code.  You do this like:
+
+<pre class="doctest">
+$ function countTag(parent, tag) {
+>     return parent.getElementsByTagName(tag).length;
+> }
+$ print(countTag(document.getElementById('container'), 'pre'));
+14
+$ print(countTag({}, 'pre'))
+Error: TypeError: parent.getElementsByTagName is not a function
+</pre>
+
+</div>
+
+<div> Unfortunately this hides the traceback.  Doctest will try to print the traceback to the console (as you can see here labeled as "Exception Stack"), but it's not always the best traceback.  The traceback is never matched against.</div>
+
+<div>You can also use <code>console.log()</code> liberally.  In addition to showing up in the console, this activity is captured on a per-statement basis, and displayed next to failing tests (generally in blue).  This makes it easier to focus just on the log messages that tell you about what went wrong, ignoring all the messages about what went right.</div>
+
+<h3>Test Page Structure</h3>
+
+<div>You don't need to do a lot to structure your page.  You should include <code>doctest.js</code> and <code>doctest.css</code>.  You should use <code>&lt;pre class="doctest/commenttest"&gt;</code>.  In between tests a little explanation of what you are testing can be helpful, and HTML in the body that doesn't match something specific for doctest will be ignored.</div>
+
+<div>To have tests loaded and run automatically you should use <code>&lt;body class="autodoctest"&gt;</code> - without it you'll have to run doctest manually by invoking a bunch of <code>doctest.</code> classes, which isn't really even documented.</div>
+
+<div>If you have an element with the id <code>doctest-output</code> that will be used to keep the report of success and failure.  If you don't have such an element, doctest will create one at the top of the page.</div>
+
+<div>If you are doing DOM manipulation you can put the elements to be manipulated right on your page.  Generally the best way to re-run your test is to reload the entire page, so you don't need to worry about cleaning up.</div>
+
+<h3>Including External Tests</h3>
+
+<div>If you want to include a test without putting it inline in your page you can use:
+
+<pre>
+&lt;pre class="commenttest" src="test1.js"&gt;&lt;/pre&gt;
+</pre>
+
+and the Javascript in <code>test1.js</code> will be inlined into the <code>pre</code> element before running the test.
+</div>
+
+<h3>Parameterizing Your Test</h3>
+
+<div>If you want to parameterize your test you might find it useful to look at <code>doctest.params</code>, which is an object holding all the query string parameters.  For instance, imagine you want to test your library's integration with an external server/service.  You might not want to hardcode the location of that server.  Instead you can do something like this:
+
+<pre>
+$ var server = doctest.params.server || "http://localhost:8080";
+$ print(server)
+...
+</pre>
+
+Then use <code>?server=http://realproductionserver.com</code> to override that location.  You'll note the <code>print(server)</code> which doesn't test anything, but once you actually run the test doctest will notice that you didn't match the output exactly and will still show the actual output for your inspection.  This can be helpful when you want to view/debug parameters of your test in case of later errors.
+</div>
+
+<h3>Asynchronous Calls and delays</h3>
+
+<div> Not everything can be tested with call-result, specifically things that require callbacks and asynchronous activity.  Requests to a server is an obvious case, and many new DOM functions are now asyncronous (e.g., IndexDB calls).</div>
+
+<div> To let the test wait a while during an example, call the <code>wait()</code> function.  This will stop the testing loop and check back periodically to see if the test is ready to continue. </div>
+
+<div>The simplest way to use <code>wait()</code> is just to tell it how long to wait, like <code>wait(1000)</code> to wait one second (like everything in Javascript it uses milliseconds).  This is the simplest way, but it's also terrible, try not to use it.</div>
+
+<div><code>wait()</code> means wait a very short amount of time. There are occassionally times when you just need to release control like this, but not wait any time at all.</div>
+
+<div>But most useful is <code>wait(function () {return true if ready to continue})</code>.  This will still time out eventually (by default after 5 seconds, you can give a second argument to wait to shorten or extend that), but it can wait a variable amount of time until things are ready to continue.</div>
+
+<div>Everything <code>print()'d</code> while waiting will be matched as expected text.</div>
+
+<div>An example (with some DOM stuff to update):
+
+<div style="border: #000 solid 1px">
+  <span id="some-output">Output will go here</span>
+</div>
+
+<pre class="doctest">
+$ function updateDom() {
+>   var el = document.getElementById('some-output');
+>   el.innerHTML = 'Test Output';
+> }
+...
+$ updateDom();
+$ wait();
+$ print(document.getElementById('some-output').innerHTML);
+Test Output
+</pre>
+
+And another example of a callback:
+
+<pre class="doctest">
+$ finished = false;
+$ function doSomethingSlowly(callback) {
+>   setTimeout(function () {finished = true; callback();}, 1);
+> }
+$ doSomethingSlowly(function () {
+>   print('Something was done');
+> });
+> wait(function () {return finished});
+Something was done
+</pre>
+
+</div>
+
+<div>When using <code>wait(callback)</code> there will still be a timeout.  All timeouts are in milliseconds; the default timeout is 5000 (5 seconds).  If that much time passes the wait will be considered a failure.  You can pass a second argument with a timeout, or set <code>doctest.Runner._defaultWaitTimeout</code> to change the value of that timeout.</div>
+
+<div>The <code>Spy</code> object makes waiting particularly easy.  You can generally test callback-oriented code very nicely like:
+
+<pre class="doctest">
+$ function doRequest(callback) {
+>   // imagine we use XMLHttpRequest
+>   setTimeout(function () {callback('data');}, 1);
+> }
+$ doRequest(Spy('doRequest.response', {wait: true}));
+doRequest.response('data')
+</pre>
+
+A Spy is kind of a mock object that tracks when it is called (and any time it is called it writes out the call info).  You can also save it in a variable, inspect the arguments, etc, as described in the section later on.</div>
+
+<h3>Halting Further Tests</h3>
+
+<div>The tests are run in order, even if one fails.  In some cases this is tedious, such as a test that requires the server to be present -- if the server is inaccessible everything will of course fail, but nothing really means anything. </div>
+
+<div>If you use <code>throw Abort('reason')</code> (or simply call <code>Abort('reason')</code>) then all further tests will be skipped. This can also be thrown in callbacks.  Simply calling or instantiating the object will stop tests.</div>
+
+<h3>Testing Utilities</h3>
+
+<h4>Spy/Mock</h4>
+
+<div>Also included is a simple mock object called <code>Spy</code>. This object can be called, and you can check if it is called and how.</div>
+
+<div>You use it like:
+
+<pre class="doctest">
+$ function funcWithCallback(callback) {
+>   setTimeout(function () {callback('foo')}, 100);
+> }
+$ mySpy = Spy('mySpy');
+$ funcWithCallback(mySpy);
+$ mySpy.wait();
+mySpy("foo")
+</pre>
+
+</div>
+
+<div>The args are kept in <code>mySpy.args</code>, the <code>this</code> object in <code>mySpy.self</code>.</div>
+
+<div><code>mySpy.wait()</code> is essentially the same thing as <code>wait(function () {return mySpy.called;})</code>.</div>
+
+<div><code>Spy</code> takes an options object as the second argument, which can have any of these properties:
+
+<dl>
+  <dt><code>writes</code> (bool)</dt>
+  <dd>If true (which is is by default), then everytime the function is called it will write the function call (like <code>mySpy.formatCall()</code> does explicitly in the example).</dd>
+
+  <dt><code>returns</code></dt>
+  <dd>This is the value that is returned when the function is called. Defaults to <code>undefined</code>.</dd>
+
+  <dt><code>throwError</code></dt>
+  <dd>This is an error that is thrown when the function is called.  If it's a function, then the return value of the function will be throws.</dd>
+
+  <dt><code>applies</code></dt>
+  <dd>This is a function that will be called.  Setting this basically makes the Spy wrap this other applies function.  If the second argument is a function (not an object of options) then it is assumed to be a value for <code>applies</code>.</dd>
+
+  <dt><code>wait</code></dt>
+  <dd>If true, then after creating it will immediately call <code>this.wait();</code>.  You can use this for shortcuts.</dd>
+
+  <dt><code>ignoreThis</code></dt>
+  <dd>If the function is called with a <code>this</code> value that is "interesting" (not <code>window</code> for instance) then it will be printed.  This can often be revealing, as developers often ignore implicit <code>this</code> arguments.  But sometimes that's just distracting, so using <code>ignoreThis: true</code> the value of <code>this</code> won't be written out.</dd>
+
+  <dt><code>wrapArgs</code></dt>
+  <dd>When printing the function call you might want to force wrapping; use <code>wrapArgs: true</code> to force this.</dd>
+
+</dl>
+
+You may set global defaults for these options with <code>doctest.Spy.defaultOptions</code>, for instance to never write calls (<code>{writes: false}</code>).</div>
+
+<div>When using <code>writes</code> (as by default) then when you call <code>spy.wait()</code> the function call will be printed out immediately after the wait.</div>
+
+<div>If you wish to be brief about it, you can do:
+
+<pre>
+$ funcWithCallback(Spy('test')); Spy('test').wait();
+$ // or:
+$ funcWithCallback(Spy('test', {wait: true}));
+</pre>
+
+</div>
+
+<div>Spies also have some attributes and methods of interest:
+
+  <dl>
+    <dt><code>.name</code></dt>
+    <dd>The name you gave the spy.  If you call <code>Spy('someName')</code> and then call <code>Spy('someName')</code> later, you'll get back the exact same object.</dd>
+
+    <dt><code>.called</code></dt>
+    <dd>Whether this spy has been called yet</dd>
+
+    <dt><code>.args</code></dt>
+    <dd>The list of arguments it was called with (null if not yet called)</dd>
+
+    <dt><code>.self</code></dt>
+    <dd>The value of <code>this</code> when called (if it was used as a method)</dd>
+
+    <dt><code>.argList</code>, <code>.selfList</code></dt>
+    <dd>These are like <code>.args</code> and <code>.self</code>, but are appended to for each call, giving a history of all the calls.</dd>
+
+    <dt><code>.func</code></dt>
+    <dd>This is a function with no attributes.  You can use this if you want to pass in a mock object that doesn't have all these extra attributes and methods attached to it.</dd>
+
+    <dt><code>.formatCall()</code></dt>
+    <dd>This returns a string that represents how this function was last called; it's what gets printed (if you have <code>writes</code> on)</dd>
+
+    <dt><code>.method(name, options)</code></dt>
+    <dd>This adds a method to the object.  This is another spy object, assigned to an attribute of the parent spy object and with an appropriate name.  So <code>Spy('foo').method('bar')</code> will give you a spy that is named <code>foo.bar</code>, and is available as <code>Spy('foo.bar')</code> or <code>Spy('foo').bar</code>.</dd>
+
+    <dt><code>.methods(properties)</code></dt>
+    <dd>This takes a bunch of methods, with options for values (or <code>null</code> if you don't care about options)</dd>
+
+    <dt><code>.wait(optional timeout)</code></dt>
+    <dd>This waits for the spy to be called.</dd>
+
+  </dl>
+</div>
+
+<h4>jshint</h4>
+
+<div>
+  <a href="http://www.jshint.com/about/">JsHint</a> is a tool for checking your Javascript code.  Besides simple syntax checking, it tests for a variety of style issues.  You can run this directly in your tests, which is helpful for giving feedback for any regressions you create while doing your testing..
+</div>
+
+<div>
+  The basic pattern is simply: <code>jshint('myscript.js', {options})</code>.  This will print out a report of any problems, or print out <code>Script passed: full/url/of/myscript.js</code>.  You can match against the output as well, if you want to ignore warnings.
+</div>
+
+<div>
+  The <code>{options}</code> are all optional, and are taken from <a href="http://www.jshint.com/options/">this list of jshint options</a>.  These are generally all problems you can ignore if you wish, e.g., <code>{laxbreak: true}</code> will suppress some warnings about line breaks.
+</div>
+
+<div>
+  When you give <code>'myscript.js'</code> doctest will look through all your <code>&lt;script&gr;</code> tags for the full URL of the script you want to test.  The script is then fetched via XMLHttpRequest and tested.
+</div>
+
+<div>
+  An example:
+  <pre class="commenttest">
+jshint('doctest.js', {evil: true, curly: true, forin: true,
+       undef: true, laxbreak: true, shadow: true, browser: true});
+/* =>
+Script failed: ".../doctest.js"
+  ?:? Don't use 'with'.
+            with (context) {
+*/
+  </pre>
+
+  Note we match for the <code>Don't use 'with'</code> because doctest.js itself happens to <em>need</em> to use <code>with</code> and it can't be helped.  Note that instead of the options like <code>{evil: true}</code> we could have put the comment <code>/*jshint evil:true */</code> in the source file.
+</div>
+
+<h4>NosyXMLHttpRequest</h4>
+
+<div>
+  This is a wrapper for <code>XMLHttpRequest</code> that prints out what happens while letting the real request through.  Think of it as a custom Spy for XHR.  You might use it like:
+
+  <pre>
+    XMLHttpRequest = NosyXMLHttpRequest.factory('XMLHttpRequest');
+  </pre>
+
+  Or if your script allows injection of an XHR replacement, you can use that.  This will print out any calls to XHR that mutate the request.  This does not print out the response (maybe it should), but if you print the request object itself it shows useful information. Note that XMLHttpRequest objects can also be usefully printed, but don't contain some information like the request URL.
+</div>
+
+<div>
+  If you want to completely mock out XMLHttpRequest, doing no actual requests to a server, I'd recommend using <a href="https://github.com/philikon/MockHttpRequest">MockHttpRequest</a>.
+</div>
+
+<h4>Object Diff</h4>
+
+<div>
+A helper is included to make a diff of objects.  This can help to view and test state changes.
+
+<pre class="doctest">
+$ oldObject = {a: 10, b: 12};
+$ newObject = {a: 11, c: 3};
+$ doctest.writeDiff(oldObject, newObject)
++c: 3
+-b: 12
+a: 10 -> 11
+</pre>
+
+<div>The output always starts with any added attributes (which show their new value), then any deleted values (which show the old value), then finally any changed attributes.  Attributes that aren't changed aren't shown.</div>
+
+<div>There is also a function <code>doctest.objectEqual</code> if you want to test if any attributes have changed.</div>
+
+</div>
+
+<!--
+<h3>CoffeeScript</h3>
+
+<div>You can use <a href="http://jashkenas.github.com/coffee-script/">CoffeeScript</a> in your tests instead of Javascript.  You should include your files as usual (e.g., using <code>type="text/coffeescript"</code> or precompiling to Javascript).  To make the actual tests <i>themselves</i> use CoffeeScript, use this in the head:</div>
+
+<pre>
+&lt;script&gt;
+  doctest.useCoffeeScript();
+&lt;/script&gt;
+</pre>
+
+<div>This replaces <code>doctest.eval</code> with a function that uses <code>CoffeeScript.compile</code>.</div>
+
+-->
+
+<h3>Hooking into the reporter</h3>
+
+<div>You may want to get access to the test results, for instance in a continuous integration environment.  The easiest way isn't to replace the reporter, but to access the results of the reporter via a <em>reporter hook</em>.</div>
+
+<div>If there is an object named <code>doctestReporterHook</code> when the doctests are run, then that object will be used.  If you have the tests running automatically on load, then you should be sure to get this object in place immediately (via <code>&lt;script&gt;</code>).</div>
+
+<div>The object can implement several methods, all optional:</div>
+
+<dl>
+  <dt><code>.init(runner)</code></dt>
+
+  <dd>This is called once at the beginning, and lets you bind the hook to the reporter.</dd>
+
+  <dt><code>.reportSuccess(example, actualOutput)</code></dt>
+
+  <dd>This is called for each line of testing (i.e., each line that starts with <code>$</code>).  It gives the example (which is an instance of <code>doctest.Example</code> and the text that was expected (which matches, hence the sucess!)</dd>
+
+  <dt><code>.reportFailure(example, actualOutput)</code></dt>
+
+  <dd>More interesting, this is a failure.  The example output (<code>example.output</code>) did not match the actual output (<code>output</code>).</dd>
+
+  <dt><code>.finish(runner)</code></dt>
+
+  <dd>All tests have finished running.  You can access a summary of the results with <code>reporter.success</code> and <code>reporter.failure</code></dd>
+
+</dl>
+
+<div>To see what these example and runner objects are like, you should just look at the code.</div>
+
+<h3>Node.js</h3>
+
+<div>There is some quite experimental and perhaps incomplete code to support Node.js instead of just the browser.  You can see an example in [examples/node-example.js](https://github.com/ianb/doctestjs/blob/master/examples/node-example.js)</div>
+
+<div>This doesn't support any fancy reporting.  In fact the reporting is kind of lame and hard to read.  It supports only the <code>commenttest</code> pattern as well.  I think the scoping might be bad.  It would be interesting to use something like [jsdom](https://github.com/tmpvar/jsdom) to create a report similar to that in the browser; it's not very interesting when everything passes, but quite useful when there's a failure.</div>
+
+<h3>To Do</h3>
+
+<ol>
+
+  <li>A clear, documented way to plug in different output comparison tools.  Pure string literal comparison is just one not-so-great way. Also clarify how <code>repr()</code> works and can be extended. </li>
+
+  <li>Including new <code>repr()</code> handlers is always good - including specific code for, say, jQuery would not be unreasonable.</li>
+
+  <li>Experiment with driving an iframe using doctests, for site functional/integration testing.</li>
+
+  <li>Write a real tutorial, this document is too unstructured.</li>
+
+  <li>Improve the Node.js support.  It <em>just barely</em> works, and loses lots of the pleasantness of the browser experience.  Perhaps it could just produce an HTML page?</li>
+
+  <li>Figure out a way to hotlink directly to edit the tests or errors.  Maybe just pluggable (e.g., to Cloud9).</li>
+
+  <li>Make skipping work better.  Now that the tests are more "flat" you can only skip giant chunks or give up on testing altogether.  It would be nice to skip "to" some destination.  Note that conditionals don't work.</li>
+
+</ol>
+
+<h3 href="examples.html">Examples</h3>
+
+<!-- /BODY -->
+
+      </div> <!-- #main -->
+
+    </div> <!-- #main-container -->
+
+    <div class="footer-container">
+      <footer class="wrapper">
+        <h3>doctest.js is by <a href="http://ianbicking.org">Ian Bicking</a>.
+          It's on <a href="https://github.com/ianb/doctestjs">github</a>!</h3>
+      </footer>
+    </div>
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src=".resources/boilerplate/js/vendor/jquery-1.8.1.min.js"><\/script>')
+</script>
+
+<script src=".resources/boilerplate/js/main.js"></script>
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-34921728-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+  </body>
+</html>
