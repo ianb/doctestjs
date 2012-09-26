@@ -9,17 +9,17 @@ if [ ! -f $base/doctest.js ] ; then
     exit 1
 fi
 
-if [ ! -d $base/jshint ] ; then
-    echo "Could not find $base/jshint"
+if [ ! -d $base/.resources/jshint ] ; then
+    echo "Could not find $base/.resources/jshint"
     echo "Try:"
-    echo "  git clone https://github.com/jshint/jshint.git jshint"
+    echo "  git clone https://github.com/jshint/jshint.git .resources/jshint"
     exit 2
 fi
 
 if [ ! -d $base/esprima ] ; then
-    echo "Could not find $base/esprima"
+    echo "Could not find $base/.resources/esprima"
     echo "Try:"
-    echo "  git clone https://github.com/ariya/esprima.git esprima"
+    echo "  git clone https://github.com/ariya/esprima.git .resources/esprima"
     exit 3
 fi
 
