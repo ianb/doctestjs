@@ -4,22 +4,46 @@
     <meta charset="utf-8">
     <link rel="stylesheet" href="doctest.css">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <title></title>
-    <meta name="description" content="__DESCRIPTION__">
+    <title>Doctest.js: Try It!</title>
+    <meta name="description" content="Doctest.js is a Javascript testing framework">
     <meta name="viewport" content="width=device-width">
-    <link rel="stylesheet" href=".resources/boilerplate/css/normalize.min.css">
-    <link rel="stylesheet" href=".resources/boilerplate/css/main.css">
-    <link rel="stylesheet" href=".resources/doc.css">
-    <script src=".resources/boilerplate/js/vendor/modernizr-2.6.1.min.js"></script>
+    <link rel="stylesheet" href="resources/boilerplate/css/normalize.min.css">
+    <link rel="stylesheet" href="resources/boilerplate/css/main.css">
+    <link rel="stylesheet" href="resources/doc.css">
+    <script src="resources/boilerplate/js/vendor/modernizr-2.6.1.min.js"></script>
     <script src="doctest.js"></script>
     <!-- EXTRA_HEAD -->
-    <!-- /EXTRA_HEAD -->
+<style>
+#display {
+  width: 100%;
+}
+
+#editor {
+  width: 100%;
+  height: 15em;
+}
+table#layout {
+  width: 100%;
+}
+table#layout td {
+  vertical-align: top;
+  padding: 1em;
+}
+table#layout pre.commenttest {
+  margin-top: 0;
+}
+#doctest-output {
+  height: 4em;
+  margin-top: -0.3em;
+}
+</style>
+<!-- /EXTRA_HEAD -->
   </head>
   <body class="autodoctest">
 
     <div class="header-container">
       <header class="wrapper clearfix">
-        <h1 class="title"><a href="/">Doctest.js</a>: <!-- TITLE --><!-- /TITLE --></h1>
+        <h1 class="title"><a href="/">Doctest.js</a>: <!-- TITLE -->Try It!<!-- /TITLE --></h1>
 
         <nav>
           <ul>
@@ -38,9 +62,31 @@
 
      <!-- BODY -->
 
-      __BODY__
+<div id="doctest-output"></div>
 
-     <!-- /BODY -->
+<table id="layout">
+  <tr>
+    <td style="width: 50%">
+      <textarea id="editor" style="width: 100%; height: 10em">// Put your tests here
+function factorial(n) {
+  return n <= 0 ? 1 : n * factorial(n-1);
+}
+
+print(factorial(3));
+// => 10
+</textarea>
+      <br>
+      <button id="testit" type="button">Test!</button>
+    </td>
+    <td>
+      <div id="display">
+        <pre id="test-location"></pre>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<!-- /BODY -->
 
       </div> <!-- #main -->
 
@@ -55,10 +101,10 @@
 
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script>
 <script>
-window.jQuery || document.write('<script src=".resources/boilerplate/js/vendor/jquery-1.8.1.min.js"><\/script>')
+window.jQuery || document.write('<script src="resources/boilerplate/js/vendor/jquery-1.8.1.min.js"><\/script>')
 </script>
 
-<script src=".resources/boilerplate/js/main.js"></script>
+<script src="resources/boilerplate/js/main.js"></script>
 
 <script type="text/javascript">
 

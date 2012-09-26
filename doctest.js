@@ -995,7 +995,7 @@ HTMLParser.prototype = {
     var rawOutput = [];
     for (var i=0; i<lines.length; i++) {
       var line = lines[i];
-      if (/^[$]/.test(line) || i==lines.length-1) {
+      if (line.search(/^\s*[$]/) != -1 || i==lines.length-1) {
         if (exampleLines.length) {
           result.push([
             exampleLines.join('\n'), outputLines.join('\n'),
