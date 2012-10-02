@@ -215,7 +215,7 @@ HTMLReporter.prototype = {
       addClass(example.htmlSpan, 'doctest-success');
       if (example.expected.indexOf('...') != -1 ||
           example.expected.indexOf('?') != -1) {
-        this.addExampleNote(example, 'Output:', 'doctest-actual-output', got);
+        this.addExampleNote(example, 'Output:', 'doctest-actual-output', got || '(none)');
       }
     }
     this.showConsoleOutput(example, false);
@@ -367,6 +367,7 @@ repr.ReprClass.prototype = {
       }
     } catch (e) {
       // FIXME: unclear what purpose this serves:
+      console.warn('Error stringifying object:', e);
       if (typeof(o.NAME) == 'string' && (
             o.toString == Function.prototype.toString ||
             o.toString == Object.prototype.toString)) {
@@ -592,6 +593,10 @@ repr.ReprClass.prototype = {
     ]
   ]
 
+};
+
+repr.register = function (condition, reprFunc) {
+  repr.ReprClass.prototype.registry.push([condition, reprFunc]);
 };
 
 var Runner = exports.Runner = function (options) {
@@ -1130,7 +1135,7 @@ HTMLParser.prototype = {
       result += pattern.substr(0, match.index);
       pattern = pattern.substr(match.index + match[0].length);
       var name = match[1];
-      var restriction = null;
+      var restriction = "^[\\w_\\-\\.]+$";;
       var defaultValue = '';
       if (name.lastIndexOf('|') != -1) {
         defaultValue = name.substr(name.lastIndexOf('|')+1);
@@ -1156,7 +1161,6 @@ HTMLParser.prototype = {
     el.innerHTML = '';
     if (hasClass(el, 'commenttest')) {
       var texts = this.splitText(text);
-      console.log('result', texts);
       if (texts && texts.length) {
         text = texts[0].body;
         if (texts[0].header) {
@@ -1646,6 +1650,9 @@ var params = exports.params = {};
 function jshint(src, options) {
   if (typeof JSHINT == 'undefined') {
     throw 'jshint.js is not included';
+  }
+  if (! src) {
+    throw 'You must call jshint(src) with a src (got ' + src + ')';
   }
   var url = src;
   if (typeof document != 'undefined') {
