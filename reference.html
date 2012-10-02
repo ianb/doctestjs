@@ -47,6 +47,55 @@ Author: Ian Bicking,
 
 <div id="contents"></div>
 
+<h3 id="html">HTML page</h3>
+
+<p>Your HTML page needs just a couple things to set it up for a test:
+
+<pre>
+&lt;html>
+ &lt;head>
+  &lt;script src="doctestjs/doctest.js">&lt;/script>
+  &lt;link href="doctestjs/doctest.css" rel="stylesheet">
+ &lt;/head>
+ &lt;body class="autodoctest">
+
+  &lt;pre class="commenttest / doctest">
+    test
+  &lt;/pre>
+ &lt;/body>
+&lt;/html>
+</pre>
+
+</p>
+
+<p>Notably you need <code>&lt;body <strong>class="autodoctest"</strong>></code> to get the tests to run automatically on page load.  If you were invoking doctest explicitly (like is done on the <a href="try.html">Try It</a> page) then you might leave this off.</p>
+
+<h4 id="external">External code</h4>
+
+<p>Often you won't want to write your test code inside the test itself.  Instead you'll want to put it in its own <code>.js</code> file.  Especially with <a href="#format-commenttest"><code>commenttest</code></a> the code is valid Javascript, and you will probably want syntax highlighting and all that.</p>
+
+<p>To do this, use an <code>href</code> attribtue on your <code>&lt;pre></code> element, like:
+
+<pre>
+&lt;pre class="commenttest" href="./tests.js">&lt;/pre>
+</pre>
+
+The contents of the element don't matter.  The test will be loaded from that location (which could be a full URL but you'll probably have <a href="http://www.w3.org/TR/cors/">cross-origin</a> errors if you tried that &mdash; this doesn't use <code>&lt;script></code> tags to load those scripts, it uses XMLHttpRequest).  Note that the class is still required!</p>
+
+<p>You can also load it from a variable location, using query string parameters to find the file.  The most common pattern would be like this:
+
+<pre>
+&lt;pre class="commenttest" data-href-pattern="./{test-name|default.js}">&lt;/pre>
+</pre>
+
+Any URL parameters (like <code>{test-name}</code>) get filled in by the query string (<code>?test-name=example.js</code>).  By default these values can only contain letters, numbers, <code>_</code>, <code>-</code> and <code>.</code> &mdash; this is to protect against loading scripts from unexpected locations via an implicitly unsafe parameters in the query string.</p>
+
+<p>If you want to use a different restriction on a variable name, use <code>{variable-name:regular_expression}</code> &mdash; and use <code>^</code> and <code>$</code> to make sure to match the entire string.</p>
+
+<p>If you want a default (if the parameter isn't set or is empty) use <code>|</code> to separate out the default.  The default should come after the regular expression.  In the example the default is <code>default.js</code>.  Don't use extra spaces around <code>|</code>!</p>
+
+<p>Note this works well with relative addresses like <code>&lt;a href="?test-name=foo.js">foo.js&lt;/a></code></p>
+
 <h3 id="format">Format of test</h3>
 
 <p>There are two formats that a doctest can take.  You've probably seen the <code>commenttest</code> format, there is also the more traditional <code>doctest</code> format.</p>
@@ -91,7 +140,9 @@ expected output
 
 <p>Basically the test is split up by using the <code>// =></code> comments.  Each chunk is executed independently, and the test may be paused at the point where the expected output is found.</p>
 
-<p>In addition if you are using <a href="#fixme">external test code</a> you can include <em>section headers</em> like:
+<h4 id="sections">Test sections</h4>
+
+<p><em>If</em> you are using <a href="#external">external test code</a> (and <code>commenttest</code>) you can include <em>section headers</em> like:
 
 <pre>
 // == SECTION A section header
@@ -100,6 +151,18 @@ expected output
 </p>
 
 <p>You can have one or more <code>=</code>'s.  The text <code>A section header</code> will become a header.  Each section header turns into a new <code>&lt;pre></code> element.</p>
+
+<h4 id="compact">Compact <code>&lt;pre></code>'s</h4>
+
+<p>Sometimes you'll have boilerplate code that sets up the test environment, and you'll be uninterested in that code (unless it fails).  This might define helper functions, or run some really routine sanity tests.  You can use this to make those test blocks small:
+
+<pre>
+&lt;pre class="commenttest expand-on-failure">
+  ...
+&lt;/pre>
+</pre>
+
+This will make the test 3em tall unless there's a failure, at which point it expands to its full size.</p>
 
 <h3 id="print">Printing/writing</h3>
 
@@ -117,19 +180,22 @@ MyObject.prototype.repr = function () {
 
 </p>
 
-<p>If you can't add a method to your object, you can also add a tracker to <code>doctest.repr.ReprClass.prototype.registry</code>.</p>
+<p>If you can't add a method to your object, you can also add a stringifier using <code>repr.register()</code>.</p>
 
 <p>You might do this like:
 
 <pre>
-doctest.repr.ReprClass.prototype.registry.push([
+repr.register(
   function (o) {
     return o instanceof MyClass;
   },
-  function (o) {
+  function (o, indentString) {
     return '[MyClass attr: ' + repr(o.attr) + ']';
-  }]);
+  }
+);
 </pre>
+
+The first function is a <em>test</em> that is applied to objects.  If it returns true, then the second function is called to stringify the object.  <em>If</em> your representation uses multiple lines, then you should indent subsequent lines with the string, like <code>return '[Beginning\n' + indentString + '  end\n' + indentString + ']';</code>.  The beginning is never indented.
 
 </p>
 
