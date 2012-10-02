@@ -19,6 +19,17 @@ pre.doctest.doctest-some-failure, pre.commenttest.doctest-some-failure {
     border: 1px solid #f00;
 }
 
+/* FIXME: it would be nice if this was more obviously styled to show that there
+   was more content */
+pre.commenttest.expand-on-failure, pre.doctest.expand-on-failure {
+    max-height: 3em;
+    overflow-y: auto;
+}
+
+pre.commenttest.expand-on-failure.doctest-some-failure, pre.doctest.expand-on-failure.doctest-some-failure {
+    max-height: none;
+}
+
 /* Individual example formatting: */
 
 .doctest-example:target {
