@@ -52,7 +52,7 @@
           <article>
             <section id="introduction">
               <header>
-                <h1>What's it like?</h1>
+                <h1 id="intro">What's it like?</h1>
               </header>
 
 <p>
@@ -68,7 +68,7 @@ Doctest.js is basically <em>example code</em> and then <em>expected output</em>.
 </p>
 
 <aside>
-  <h3>Page Setup</h3>
+  <h3 id="page-setup">Page Setup</h3>
 
   <p>
     See <a href="#html">Setting Up Your HTML</a> to see how to get your test running in the browser.
@@ -117,7 +117,7 @@ You'll notice it shows a failure (or more than one &mdash; it's the summary for 
 </p>
 
 <aside>
-  <h3>Quoting</h3>
+  <h3 id="quoting">Quoting</h3>
 
   <p>
     If you are writing your tests inline in the document, remember that you don't need to quote <code>></code> as <code>&amp;gt;</code>, that's only needed for <code>&lt;</code>
@@ -134,7 +134,7 @@ Let's look at what we did there: <code>print(factorial(4))</code> and <code>// =
 
 <section id="errors">
   <header>
-    <h3>Testing for error conditions</h3>
+    <h3 id="errors">Testing for error conditions</h3>
   </header>
 
 <p>
@@ -159,7 +159,7 @@ factorial(null);
 
 <section id="print">
   <header>
-    <h3><code>print()</code> and output matching</h3>
+    <h3 id="print"><code>print()</code> and output matching</h3>
   </header>
 
 <aside>
@@ -238,7 +238,7 @@ Think of this pattern of <code>print(x == y)</code> as a kind of <code>assertEqu
 
 <section id="async">
   <header>
-    <h3>Testing async code</h3>
+    <h3 id="async">Testing async code</h3>
   </header>
 
 <aside>
@@ -307,7 +307,7 @@ Another thing to note is that <code>wait()</code> needs to be called when that b
 
 <section id="spy">
   <header>
-    <h3>The Spy</h3>
+    <h3 id="spy">The Spy</h3>
   </header>
 
 <aside>
@@ -467,7 +467,7 @@ If you want to inspect how the Spy has been called, you can check a few attribut
 
 <section id="console">
   <header>
-    <h3>console.log</h3>
+    <h3 id="console-log">console.log</h3>
   </header>
 
 <p>
@@ -506,7 +506,7 @@ You can think of it a little like <code>print()</code> goes to stdout, and <code
 
 <section id="abort">
   <header>
-    <h3>Giving Up</h3>
+    <h3 id="abort">Giving Up</h3>
   </header>
 
 <p>
@@ -531,7 +531,7 @@ $.ajax({
 
 <section id="html">
   <header>
-    <h2>Setting Up Your HTML</h2>
+    <h2 id="html">Setting Up Your HTML</h2>
   </header>
 
 <aside>
@@ -600,7 +600,7 @@ A pass/fail summary is automatically added to the top of the page, though you ca
 
 <section id="feedback">
   <header>
-    <h2>Feedback?</h2>
+    <h2 id="feedback">Feedback?</h2>
   </header>
 
 <p>Was something in this tutorial confusing?  Is there a testing problem or pattern you think this tutorial should talk about?  Please give feedback in the form of an <a href="https://github.com/ianb/doctestjs/issues/new">new issue</a>.  Thanks!</p>
