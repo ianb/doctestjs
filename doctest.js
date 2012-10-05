@@ -302,13 +302,16 @@ HTMLReporter.prototype = {
 
 var ConsoleReporter = exports.ConsoleReporter = function (runner) {
   this.runner = runner;
+  this.successes = this.failures = 0;
 };
 
 ConsoleReporter.prototype = {
   logSuccess: function (example, got) {
+    this.successes++;
     console.log('Passed:', example.textSummary());
   },
   logFailure: function (example, got) {
+    this.failures++;
     console.log('Failed:', example.expr);
     console.log('Expected:');
     console.log(example.expected);
