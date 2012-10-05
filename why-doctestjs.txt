@@ -93,3 +93,22 @@ Javascript has something *specifically for* printing debugging output: ``console
 Doctest.js also forces the developer to print everything they care about.  For better or worse Javascript has many more expressions than Python (including assignments), so looking at the result of an expression isn't a good clue for whether you *care* about the result of an expression.  I'm not sure this is *better*, but it's part of the difference.
 
 Doctest.js also groups your printed statements according to the example you are in (an example being a block of code and an expected output).  This is much more helpful than watching a giant stream of output go to the console (the browser console or terminal).
+
+Doctest.js handles async code
+-----------------------------
+
+This admittedly isn't that big a deal for Python, but for Javascript it is a real problem.  Not a problem for doctest.js in particular, but a problem for any Javascript test framework.  You want to test return values, but lots of functions don't "return", instead they call some callback or create some kind of promise object, and you have to test for side effects.
+
+Doctest.js I think has a `really great answer for this <http://doctestjs.org/tutorial.html#async>`_, which is not so much to say that Python's doctest is so much worse, but in the context of Javascript doctest.js has something really useful and unique.  If callback-driven async code had ever been very popular in Python then this sort of feature would be nice there too.
+
+The browser is a great environment
+----------------------------------
+
+A lot of where doctest.js is much better than Python's doctest is simply that it has a much more powerful environment for displaying results.  It can highlight failed or passing tests.  When there's a wildcard in expected output, it can show the actual output without adding any particular extra distraction.  It can group console messages with the tests they go with.  It can show *both* a simple failure message, and a detailed line-by-line comparison.  All these details make it easy to identify what went wrong and fix it.  The browser gives a rich and navigable interface.
+
+I'd *like* to get doctest.js working well on Node.js (right now it works, but is not appealing), but I just can't bring myself to give up the browser.  I have to figure out a good hybrid.
+
+Python's doctest lacks any champion
+-----------------------------------
+
+This is ultimately the reason Python's doctest has all these problems: no one cares about it, no one feels responsible for it, and no one feels empowered to make improvements to it.  And to make things worse there is a cadre of people that will respond to suggestions with their own criticisms that doctest should never be used beyond its original niche, that it's constraints are features.
