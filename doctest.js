@@ -253,18 +253,17 @@ HTMLReporter.prototype = {
     this.runner._hook('reportFailure', example, got);
   },
 
-  logAbort: function (example, abort) {
+  logAbort: function (example, abortMessage) {
     this.addFailure();
-    var message = abort.message || 'Abort() called';
-    this.addAborted(message);
+    this.addAborted(abortMessage);
     if (example.htmlSpan) {
       addClass(example.htmlSpan, 'doctest-failure');
     }
     if (example.blockEl) {
       addClass(example.blockEl, 'doctest-some-failure');
     }
-    this.addExampleNote(example, 'Aborted:', 'doctest-actual-output', message);
-    this.runner._hook('reportAbort', example, abort);
+    this.addExampleNote(example, 'Aborted:', 'doctest-actual-output', abortMessage);
+    this.runner._hook('reportAbort', example, abortMessage);
   },
 
   addFailure: function () {
@@ -849,9 +848,6 @@ Runner.prototype = {
       if (this._exampleWait) {
         this._runWait();
         break;
-      }
-      if (this._abortCalled) {
-        console.log('Abort called: ' + this._abortCalled);
       }
       this.evalUninit();
       this._currentExample.check();
