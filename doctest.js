@@ -1128,7 +1128,7 @@ HTMLParser.prototype = {
         if (req.readyState != 4) {
           return;
         }
-        if (req.status != 200) {
+        if (req.status != 200 && !(req.status == 0 && document.location.protocol == "file:")) {
           el.appendChild(doc.createTextNode('\n// Error fetching ' + href + ' status: ' + req.status));
         } else {
           this.fillElement(el, req.responseText);
