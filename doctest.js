@@ -514,7 +514,10 @@ repr.ReprClass.prototype = {
   xmlRepr: function (el, indentString) {
     var i;
     if (el.nodeType == el.DOCUMENT_NODE) {
-      return this.xmlRepr(el.childNodes[0], indentString);
+      return "<document " + el.location.href + ">";
+    }
+    if (el.nodeType == el.DOCUMENT_TYPE_NODE) {
+      return "<!DOCTYPE " + el.name + ">";
     }
     var s = '<' + el.tagName.toLowerCase();
     var attrs = [];
@@ -1210,10 +1213,15 @@ HTMLParser.prototype = {
   },
 
   splitText: function (text) {
-    var ast = esprima.parse(text, {
-      range: true,
-      comment: true
-    });
+    try {
+      var ast = esprima.parse(text, {
+        range: true,
+        comment: true
+      });
+    } catch (e) {
+      // The error will get reported later on, so we'll just ignore it here
+      return [{header: null, body: text}];
+    }
     // FIXME: check if it didn't parse
     var result = [];
     var pos = 0;
