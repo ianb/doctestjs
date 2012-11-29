@@ -81,6 +81,11 @@ pre.commenttest.expand-on-failure.doctest-some-failure, pre.doctest.expand-on-fa
     color: #f00;
 }
 
+#doctest-aborted {
+    background-color: #900;
+    color: #fff;
+}
+
 .doctest-report-table th {
     font-weight: normal;
     text-align: left;

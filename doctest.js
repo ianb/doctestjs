@@ -187,6 +187,8 @@ var HTMLReporter = exports.HTMLReporter = function (runner, containerEl) {
     '<tr><th>Failures:</th>' +
     '<td id="doctest-failure-count">0</td>' +
     '<td><button id="doctest-reload">reload/retest</button></td></tr>' +
+    '<tr id="doctest-abort-row" style="display: none"><th>Aborted:</th>' +
+    '<td id="doctest-aborted"></td></tr>' +
     '<tr><th></th>' +
     '<td colspan=2 id="doctest-failure-links"></td></tr>' +
     '</table>'
@@ -251,11 +253,30 @@ HTMLReporter.prototype = {
     this.runner._hook('reportFailure', example, got);
   },
 
+  logAbort: function (example, abortMessage) {
+    this.addFailure();
+    this.addAborted(abortMessage);
+    if (example.htmlSpan) {
+      addClass(example.htmlSpan, 'doctest-failure');
+    }
+    if (example.blockEl) {
+      addClass(example.blockEl, 'doctest-some-failure');
+    }
+    this.addExampleNote(example, 'Aborted:', 'doctest-actual-output', abortMessage);
+    this.runner._hook('reportAbort', example, abortMessage);
+  },
+
   addFailure: function () {
     var num = parseInt(this.failureEl.innerHTML, 10);
     num++;
     this.failureEl.innerHTML = num+'';
     addClass(this.failureEl, 'doctest-nonzero');
+  },
+
+  addAborted: function (message) {
+    doc.getElementById('doctest-abort-row').style.display = '';
+    var td = doc.getElementById('doctest-aborted');
+    td.appendChild(doc.createTextNode(message));
   },
 
   showConsoleOutput: function (example, error) {
@@ -302,13 +323,16 @@ HTMLReporter.prototype = {
 
 var ConsoleReporter = exports.ConsoleReporter = function (runner) {
   this.runner = runner;
+  this.successes = this.failures = 0;
 };
 
 ConsoleReporter.prototype = {
   logSuccess: function (example, got) {
+    this.successes++;
     console.log('Passed:', example.textSummary());
   },
   logFailure: function (example, got) {
+    this.failures++;
     console.log('Failed:', example.expr);
     console.log('Expected:');
     console.log(example.expected);
@@ -490,7 +514,10 @@ repr.ReprClass.prototype = {
   xmlRepr: function (el, indentString) {
     var i;
     if (el.nodeType == el.DOCUMENT_NODE) {
-      return this.xmlRepr(el.childNodes[0], indentString);
+      return "<document " + el.location.href + ">";
+    }
+    if (el.nodeType == el.DOCUMENT_TYPE_NODE) {
+      return "<!DOCTYPE " + el.name + ">";
     }
     var s = '<' + el.tagName.toLowerCase();
     var attrs = [];
@@ -825,18 +852,16 @@ Runner.prototype = {
         this._runWait();
         break;
       }
-      if (this._abortCalled) {
-        console.log('Abort called: ' + this._abortCalled);
-      }
       this.evalUninit();
       this._currentExample.check();
-      this._currentExample = null;
       if (this._abortCalled) {
         // FIXME: this should show that while finished, and maybe successful,
         // the tests were aborted
+        this.reporter.logAbort(this._currentExample, this._abortCalled);
         this._finish();
         break;
       }
+      this._currentExample = null;
     }
   },
 
@@ -1106,7 +1131,7 @@ HTMLParser.prototype = {
         if (req.readyState != 4) {
           return;
         }
-        if (req.status != 200) {
+        if (req.status != 200 && !(req.status == 0 && document.location.protocol == "file:")) {
           el.appendChild(doc.createTextNode('\n// Error fetching ' + href + ' status: ' + req.status));
         } else {
           this.fillElement(el, req.responseText);
@@ -1188,10 +1213,15 @@ HTMLParser.prototype = {
   },
 
   splitText: function (text) {
-    var ast = esprima.parse(text, {
-      range: true,
-      comment: true
-    });
+    try {
+      var ast = esprima.parse(text, {
+        range: true,
+        comment: true
+      });
+    } catch (e) {
+      // The error will get reported later on, so we'll just ignore it here
+      return [{header: null, body: text}];
+    }
     // FIXME: check if it didn't parse
     var result = [];
     var pos = 0;
