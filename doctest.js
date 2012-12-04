@@ -529,8 +529,8 @@ repr.ReprClass.prototype = {
       for (i=0; i<attrs.length; i++) {
         s += ' ' + attrs[i] + '="';
         var value = el.getAttribute(attrs[i]);
-        value = value.replace('&', '&amp;');
-        value = value.replace('"', '&quot;');
+        value = value.replace(/&/g, '&amp;');
+        value = value.replace(/"/g, '&quot;');
         s += value;
         s += '"';
       }
