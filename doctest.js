@@ -1409,7 +1409,7 @@ var hasClass = exports.hasClass = function (el, className) {
 var RegExpEscape = exports.RegExpEscape = function (text) {
   if (! arguments.callee.sRE) {
     var specials = [
-      '/', '.', '*', '+', '?', '|',
+      '/', '.', '*', '+', '?', '|', '$',
       '(', ')', '[', ']', '{', '}', '\\'
     ];
     arguments.callee.sRE = new RegExp(
