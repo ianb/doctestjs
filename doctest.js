@@ -1234,7 +1234,7 @@ HTMLParser.prototype = {
       var start = comment.range[0];
       var end = comment.range[1];
       var body = text.substr(pos, start-pos);
-      var header = strip(comment.value.replace(/^\s*=+\sSECTION\s*/, ''));
+      var header = strip(comment.value.replace(/^\s*=+\s*SECTION\s*/, ''));
       if (! result.length) {
         if (strip(body)) {
           result.push({header: null, body: body});
