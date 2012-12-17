@@ -1194,18 +1194,19 @@ HTMLParser.prototype = {
           h3.appendChild(document.createTextNode(texts[0].header));
           el.parentNode.insertBefore(h3, el);
         }
-        // Ignore first header I guess
+        var last = el;
         for (var i=1; i<texts.length; i++) {
           var pre = document.createElement('pre');
           pre.className = el.className;
           pre.appendChild(document.createTextNode(texts[i].body));
-          el.parentNode.insertBefore(pre, el.nextSibling);
+          last.parentNode.insertBefore(pre, last.nextSibling);
           if (texts[i].header) {
             var h3 = document.createElement('h3');
             h3.className = 'doctest-section-header';
             h3.appendChild(document.createTextNode(texts[i].header));
-            el.parentNode.insertBefore(h3, el.nextSibling);
+            last.parentNode.insertBefore(h3, last.nextSibling);
           }
+          last = pre;
         }
       }
     }
