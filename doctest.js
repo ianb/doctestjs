@@ -360,7 +360,7 @@ repr.ReprClass = function (indentString, maxLen) {
 repr.ReprClass.prototype = {
   defaultMaxLen: 80,
 
-  repr: function (o, indentString) {
+  repr: function reprFunc(o, indentString) {
     if (indentString === undefined) {
       indentString = this.indentString;
     }
@@ -375,7 +375,7 @@ repr.ReprClass.prototype = {
     try {
       if (typeof o.__repr__ == 'function') {
         return o.__repr__(indentString, this.maxLen);
-      } else if (typeof o.repr == 'function' && o.repr != arguments.callee &&
+      } else if (typeof o.repr == 'function' && o.repr != reprFunc &&
                  o.repr != repr) {
         return o.repr(indentString, this.maxLen);
       }
@@ -1204,7 +1204,7 @@ HTMLParser.prototype = {
             var h3 = document.createElement('h3');
             h3.className = 'doctest-section-header';
             h3.appendChild(document.createTextNode(texts[i].header));
-            last.parentNode.insertBefore(h3, last.nextSibling);
+            last.parentNode.insertBefore(h3, last);
           }
           last = pre;
         }
@@ -1533,7 +1533,11 @@ var Spy = exports.Spy = function (name, options, extraOptions) {
     self.selfList.push(this);
     // It might be possible to get the caller?
     if (self.writes) {
-      writeln(self.formatCall());
+      if (typeof writeln == "undefined") {
+        console.warn("Spy writing outside of test:", self.formatCall());
+      } else {
+        writeln(self.formatCall());
+      }
     }
     if (self.throwError) {
       var throwError = self.throwError;
@@ -1546,7 +1550,7 @@ var Spy = exports.Spy = function (name, options, extraOptions) {
       try {
         return self.applies.apply(this, arguments);
       } catch (e) {
-        console.error('Error in ' + this.repr() + '.applies:', e);
+        console.error('Error in ' + self.repr() + '.applies:', e);
         throw e;
       }
     }
