@@ -259,7 +259,7 @@ For our example we'll use <code>XMLHttpRequest</code>, a common source of asynch
 
 <p>
 
-To do this we'll use <code>wait()</code> &mdash; when this function is calls the test runner will wait at the point where it sees <code>// =></code>, for a certain amount of time or until a certain condition is met. Only then will it compare all the output that has happened to what was expected, and run the next chunk of test.
+To do this we'll use <code>wait()</code> &mdash; when this function is called the test runner will wait at the point where it sees <code>// =></code>, for a certain amount of time or until a certain condition is met. Only then will it compare all the output that has happened to what was expected, and run the next chunk of test.
 
 </p>
 
@@ -585,7 +585,7 @@ This will load the test code from <code>./my_tests.js</code> and inline it into 
 
 <p>
 
-Note that specifically when you use <code>href="URL.js"</code> you can include the comment <code><b>// == SECTION</b> Section header</code>, and the <code>&lt;pre</code> element will turn into multiple elements with headers.
+Note that specifically when you use <code>href="URL.js"</code> you can split the tests into sections by including the comment <code><b>// == SECTION</b> Your Section Header Name</code> in the included file, and you'll get multiple elements with headers automatically.
 
 </p>
 
