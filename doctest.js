@@ -960,7 +960,7 @@ var HTMLParser = exports.HTMLParser = function (runner, containerEl, selector) {
     throw 'Bad/null/missing containerEl';
   }
   this.containerEl = containerEl;
-  this.selector = selector || 'pre.doctest, pre.commenttest';
+  this.selector = selector || 'pre.doctest, pre.commenttest, pre.test';
 };
 
 HTMLParser.prototype = {
@@ -987,7 +987,7 @@ HTMLParser.prototype = {
     var examples;
     if (hasClass(el, 'doctest')) {
       examples = this.parseDoctestEl(el);
-    } else if (hasClass(el, 'commenttest')) {
+    } else if (hasClass(el, 'commenttest') || hasClass(el, 'test')) {
       examples = this.parseCommentEl(el);
     } else {
       throw 'Unknown element class/type';
@@ -1190,7 +1190,7 @@ HTMLParser.prototype = {
 
   fillElement: function (el, text) {
     el.innerHTML = '';
-    if (hasClass(el, 'commenttest')) {
+    if (hasClass(el, 'commenttest') || hasClass(el, 'test')) {
       var texts = this.splitText(text);
       if (texts && texts.length) {
         for (var i=0; i<texts.length; i++) {
