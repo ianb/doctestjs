@@ -1002,12 +1002,9 @@ HTMLParser.prototype = {
       this.runner.examples.push(ex);
       ex.blockEl = el;
       ex.htmlID = genID('example');
-      if (rawOutput !== '') {
-        rawOutput += '\n';
-      }
       var span = makeElement('span', {id: ex.htmlID, className: 'doctest-example'}, [
-        makeElement('span', {className: 'doctest-expr'}, [rawExample + '\n']),
-        makeElement('span', {className: 'doctest-output'}, [rawOutput])
+        makeElement('div', {className: 'doctest-expr'}, [rawExample]),
+        makeElement('div', {className: 'doctest-output'}, [rawOutput])
         ]);
       ex.htmlSpan = span;
       newChildren.push(span);
