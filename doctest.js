@@ -209,9 +209,9 @@ var HTMLReporter = exports.HTMLReporter = function (runner, containerEl) {
 HTMLReporter.prototype = {
 
   logSuccess: function (example, got) {
-    var num = parseInt(this.successEl.innerHTML, 10);
+    var num = parseInt(this.successEl.innerHTML.split('/')[0]);
     num++;
-    this.successEl.innerHTML = num+'';
+    this.successEl.innerHTML = num+' / '+this.runner.examples.length;
     addClass(this.successEl, 'doctest-nonzero');
     if (example.htmlSpan) {
       addClass(example.htmlSpan, 'doctest-success');
