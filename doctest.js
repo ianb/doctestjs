@@ -1080,7 +1080,13 @@ HTMLParser.prototype = {
       var example = contents.substr(pos, start-pos);
       var output = comment.value.replace(/^\s*=> ?/, '');
       var orig = comment.type == 'Block' ? '/*' + comment.value + '*/' : '//' + comment.value;
-      result.push([example, output, example, orig]);
+      if (example === '') {
+          result[result.length-1][1] += '\n'+output;
+          result[result.length-1][3] += '\n'+orig;
+      }
+      else {
+        result.push([example, output, example, orig]);
+      }
       pos = end;
     }
     var last = contents.substr(pos, contents.length-pos);
