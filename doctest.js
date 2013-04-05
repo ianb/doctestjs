@@ -209,7 +209,7 @@ var HTMLReporter = exports.HTMLReporter = function (runner, containerEl) {
 HTMLReporter.prototype = {
 
   logSuccess: function (example, got) {
-    var num = parseInt(this.successEl.innerHTML.split('/')[0]);
+    var num = parseInt(this.successEl.innerHTML.split('/')[0], 10);
     num++;
     this.successEl.innerHTML = num+' / '+this.runner.examples.length;
     addClass(this.successEl, 'doctest-nonzero');
