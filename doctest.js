@@ -209,9 +209,9 @@ var HTMLReporter = exports.HTMLReporter = function (runner, containerEl) {
 HTMLReporter.prototype = {
 
   logSuccess: function (example, got) {
-    var num = parseInt(this.successEl.innerHTML, 10);
+    var num = parseInt(this.successEl.innerHTML.split('/')[0], 10);
     num++;
-    this.successEl.innerHTML = num+'';
+    this.successEl.innerHTML = num+' / '+this.runner.examples.length;
     addClass(this.successEl, 'doctest-nonzero');
     if (example.htmlSpan) {
       addClass(example.htmlSpan, 'doctest-success');
@@ -960,7 +960,7 @@ var HTMLParser = exports.HTMLParser = function (runner, containerEl, selector) {
     throw 'Bad/null/missing containerEl';
   }
   this.containerEl = containerEl;
-  this.selector = selector || 'pre.doctest, pre.commenttest';
+  this.selector = selector || 'pre.doctest, pre.commenttest, pre.test';
 };
 
 HTMLParser.prototype = {
@@ -987,7 +987,7 @@ HTMLParser.prototype = {
     var examples;
     if (hasClass(el, 'doctest')) {
       examples = this.parseDoctestEl(el);
-    } else if (hasClass(el, 'commenttest')) {
+    } else if (hasClass(el, 'commenttest') || hasClass(el, 'test')) {
       examples = this.parseCommentEl(el);
     } else {
       throw 'Unknown element class/type';
@@ -1003,8 +1003,8 @@ HTMLParser.prototype = {
       ex.blockEl = el;
       ex.htmlID = genID('example');
       var span = makeElement('span', {id: ex.htmlID, className: 'doctest-example'}, [
-        makeElement('span', {className: 'doctest-expr'}, [rawExample + '\n']),
-            makeElement('span', {className: 'doctest-output'}, [rawOutput + '\n'])
+        makeElement('div', {className: 'doctest-expr'}, [rawExample]),
+        makeElement('div', {className: 'doctest-output'}, [rawOutput])
         ]);
       ex.htmlSpan = span;
       newChildren.push(span);
@@ -1080,7 +1080,13 @@ HTMLParser.prototype = {
       var example = contents.substr(pos, start-pos);
       var output = comment.value.replace(/^\s*=> ?/, '');
       var orig = comment.type == 'Block' ? '/*' + comment.value + '*/' : '//' + comment.value;
-      result.push([example, output, example, orig]);
+      if (example === '') {
+          result[result.length-1][1] += '\n'+output;
+          result[result.length-1][3] += '\n'+orig;
+      }
+      else {
+        result.push([example, output, example, orig]);
+      }
       pos = end;
     }
     var last = contents.substr(pos, contents.length-pos);
@@ -1160,7 +1166,7 @@ HTMLParser.prototype = {
       result += pattern.substr(0, match.index);
       pattern = pattern.substr(match.index + match[0].length);
       var name = match[1];
-      var restriction = "^[\\w_\\-\\.]+$";;
+      var restriction = "^[\\w_\\-\\.]+$";
       var defaultValue = '';
       if (name.lastIndexOf('|') != -1) {
         defaultValue = name.substr(name.lastIndexOf('|')+1);
@@ -1184,33 +1190,24 @@ HTMLParser.prototype = {
 
   fillElement: function (el, text) {
     el.innerHTML = '';
-    if (hasClass(el, 'commenttest')) {
+    if (hasClass(el, 'commenttest') || hasClass(el, 'test')) {
       var texts = this.splitText(text);
       if (texts && texts.length) {
-        text = texts[0].body;
-        if (texts[0].header) {
-          h3 = document.createElement('h3');
-          h3.className = 'doctest-section-header';
-          h3.appendChild(document.createTextNode(texts[0].header));
-          el.parentNode.insertBefore(h3, el);
-        }
-        var last = el;
-        for (var i=1; i<texts.length; i++) {
+        for (var i=0; i<texts.length; i++) {
+            if (texts[i].header) {
+                var h3 = document.createElement('h3');
+                h3.className = 'doctest-section-header';
+                h3.appendChild(document.createTextNode(texts[i].header));
+                el.parentNode.insertBefore(h3, null);
+            }
           var pre = document.createElement('pre');
           pre.className = el.className;
           pre.appendChild(document.createTextNode(texts[i].body));
-          last.parentNode.insertBefore(pre, last.nextSibling);
-          if (texts[i].header) {
-            var h3 = document.createElement('h3');
-            h3.className = 'doctest-section-header';
-            h3.appendChild(document.createTextNode(texts[i].header));
-            last.parentNode.insertBefore(h3, last);
-          }
-          last = pre;
+          el.parentNode.insertBefore(pre, null);
         }
       }
     }
-    el.appendChild(doc.createTextNode(text));
+    el.parentNode.removeChild(el);
   },
 
   splitText: function (text) {
@@ -1353,6 +1350,34 @@ var genID = exports.genID = function (prefix) {
 };
 genID._idGen = 1;
 
+function deIndent(text) {
+    var minimum_spaces = 10000;
+    var foo = text.split('\n');
+    var i = 0;
+    var j = 0;
+    var result = '';
+    for (i=0; i < foo.length; i++) {
+        for (j=0; j < foo[i].length && j < minimum_spaces; j++) {
+            if (foo[i][j] != ' ') {
+                if (j < minimum_spaces) {
+                    minimum_spaces = j;
+                }
+                break;
+            }
+        }
+    }
+    if (minimum_spaces == 0) {
+        return text.replace(/^\s+|\s+$/g, '');
+    }
+    for (i=0; i < foo.length; i++) {
+        if (strip(foo[i].substr(0, minimum_spaces)) !== '') {
+            throw 'Deindent failed';
+        }
+        result += foo[i].substr(minimum_spaces) + '\n';
+    }
+    return strip(result);
+}
+
 var getElementText = exports.getElementText = function (el) {
   if (! el) {
     throw('You must pass in an element');
@@ -1367,7 +1392,8 @@ var getElementText = exports.getElementText = function (el) {
       text += getElementText(sub);
     }
   }
-  return text;
+
+  return deIndent(text);
 };
 
 var makeElement = exports.makeElement = function (tagName, attrs, children) {
