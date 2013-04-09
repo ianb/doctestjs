@@ -1245,7 +1245,7 @@ HTMLParser.prototype = {
     }
     if (! result.length) {
       // No sections
-      return null;
+      return [{header: '', body: text}];
     }
     var last = text.substr(pos, text.length-pos);
     result[result.length-1].body = last;
