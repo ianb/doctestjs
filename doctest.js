@@ -51,7 +51,7 @@ Example.prototype = {
     this.consoleOutput = [];
     var globs = this.runner.evalInit();
     try {
-      this.result = this.runner.evaller(this.expr, globs);
+      this.result = this.runner.evaller(this.expr, globs, this.filename);
     } catch (e) {
       if (e['doctest.abort']) {
         return;
@@ -664,7 +664,9 @@ Runner.prototype = {
   },
 
   evalInit: function () {
-    var self = this;
+    if (typeof this.globs != "undefined") {
+      return this.globs;
+    }
     this.logGrouped = false;
     this._abortCalled = false;
     var globs = {
@@ -695,7 +697,9 @@ Runner.prototype = {
           }
         }
       }
-      return globs;
+      var context = require('vm').Script.createContext();
+      extend(context, globs);
+      return context;
     } else {
       extend(console, consoleOverwrites);
       window.onerror = this.windowOnerror;
@@ -817,14 +821,45 @@ Runner.prototype = {
     }
   },
 
-  evaller: function (expr, context) {
+  evaller: function (expr, context, filename) {
     var e = eval;
     var result;
     if (context) {
-      if (typeof global != "undefined") {
-        extend(global, context);
+      if (typeof window == "undefined") {
         var vm = require('vm');
-        vm.runInThisContext(expr);
+
+        if (! (context instanceof vm.Script.createContext().constructor)) {
+            throw "context must be created with vm.Script.createContext()";
+        }
+
+        // Prepare context to evaluate `expr` in. Mostly follows CoffeeScript
+        // [eval function](http://git.io/coffee-script-eval).
+        context.global = context.root = context.GLOBAL = context;
+        context.__filename = typeof filename != "undefined" ? filename : __filename;
+        context.__dirname = require('path').dirname(context.__filename);
+        context.module = module;
+        context.require = require;
+
+        // Set `module.filename` to script file name and evaluate the script.
+        // Now, if the script executes `require('./something')`, it will look
+        // up `'./something'` relative to script path.
+        //
+        // We restore `module.filename` afterwards, because `module` object
+        // is reused. The other approach is to create a new `module` instance.
+        // CoffeeScript [eval][1] [works this way][2]. Unfortunately it
+        // [uses private Node API][3] to do it.
+        //
+        // [1]: http://git.io/coffee-script-eval
+        // [2]: https://github.com/jashkenas/coffee-script/pull/1487
+        // [3]: http://git.io/coffee-script-eval-comment
+        var prevfilename = module.filename;
+        module.filename = context.__filename;
+        try {
+          vm.runInContext(expr, context, context.__filename);
+        } finally {
+            module.filename = prevfilename;
+        }
+
       } else {
         with (context) {
           result = eval(expr);
@@ -932,8 +967,10 @@ Runner.prototype = {
   examples: null,
   Example: Example,
   exampleOptions: null,
-  makeExample: function (text, expected) {
-    return new this.Example(this, text, expected, this.exampleOptions);
+  makeExample: function (text, expected, filename) {
+    var options = {filename: filename};
+    extend(options, this.exampleOptions);
+    return new this.Example(this, text, expected, options);
   },
   matcher: null,
   Matcher: Matcher,
@@ -1245,7 +1282,7 @@ HTMLParser.prototype = {
     }
     if (! result.length) {
       // No sections
-      return null;
+      return [{header: '', body: text}];
     }
     var last = text.substr(pos, text.length-pos);
     result[result.length-1].body = last;
@@ -1254,7 +1291,7 @@ HTMLParser.prototype = {
 
 };
 
-var TextParser = exports.TextParser = function (runner, text) {
+var TextParser = exports.TextParser = function (runner, text, filename) {
   if (typeof esprima == "undefined") {
     if (typeof require != "undefined") {
       esprima = require("./esprima/esprima.js");
@@ -1264,18 +1301,19 @@ var TextParser = exports.TextParser = function (runner, text) {
   }
   this.runner = runner;
   this.text = text;
+  this.filename = filename;
 };
 
 TextParser.fromFile = function (runner, filename) {
   if (typeof filename != "string") {
-    throw "You did you give a filename for the second argument: " + filename;
+    throw "You did not give a filename for the second argument: " + filename;
   }
   if (typeof require == "undefined") {
     throw "This method only works in Node, with the presence of require()";
   }
   var fs = require('fs');
   var text = fs.readFileSync(filename, 'UTF-8');
-  return new TextParser(runner, text);
+  return new TextParser(runner, text, filename);
 };
 
 TextParser.prototype = {
@@ -1296,13 +1334,13 @@ TextParser.prototype = {
       var end = comment.range[1];
       var example = this.text.substr(pos, start-pos);
       var output = comment.value.replace(/^\s*=>\s*/, '');
-      var ex = this.runner.makeExample(example, output);
+      var ex = this.runner.makeExample(example, output, this.filename);
       this.runner.examples.push(ex);
       pos = end;
     }
     var last = this.text.substr(pos, this.text.length-pos);
     if (strip(last)) {
-      this.runner.examples.push(this.runner.makeExample(last, ''));
+      this.runner.examples.push(this.runner.makeExample(last, '', this.filename));
     }
   }
 };
