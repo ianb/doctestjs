@@ -1306,7 +1306,7 @@ var TextParser = exports.TextParser = function (runner, text, filename) {
 
 TextParser.fromFile = function (runner, filename) {
   if (typeof filename != "string") {
-    throw "You did you give a filename for the second argument: " + filename;
+    throw "You did not give a filename for the second argument: " + filename;
   }
   if (typeof require == "undefined") {
     throw "This method only works in Node, with the presence of require()";
