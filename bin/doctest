@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+
+var path = require('path');
+var fs = require('fs');
+var root = path.join(path.dirname(fs.realpathSync(__filename)), '..');
+
+var doctest = require(root + '/doctest');
+
+var runner = new doctest.Runner({Reporter: doctest.ConsoleReporter});
+var parser = new doctest.TextParser.fromFile(runner, process.argv[2]);
+parser.parse();
+runner.run();
+var reporter = runner.reporter;
+console.log('Successes:', reporter.successes);
+console.log('Failures:', reporter.failures);
+if ((! reporter.successes) || reporter.failures) {
+  // Set exit code to number of failures (if any). It gives a nice failures
+  // summary when running under make. E.g.: `make: *** [doctest] Error 2`
+  process.exit(reporter.failures || 1);
+}
