@@ -7,9 +7,11 @@ var root = path.join(path.dirname(fs.realpathSync(__filename)), '..');
 var doctest = require(root + '/doctest');
 
 var runner = new doctest.Runner({Reporter: doctest.ConsoleReporter});
+runner.globs = runner.evalInit();
 var parser = new doctest.TextParser.fromFile(runner, process.argv[2]);
 parser.parse();
 runner.run();
+
 var reporter = runner.reporter;
 console.log('Successes:', reporter.successes);
 console.log('Failures:', reporter.failures);
