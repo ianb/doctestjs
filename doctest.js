@@ -614,7 +614,8 @@ repr.ReprClass.prototype = {
      "arrayRepr"
     ],
     [function (o) {
-       return o instanceof XMLHttpRequest;
+       return typeof XMLHttpRequest !== 'undefined' && o instanceof XMLHttpRequest;
+
      },
      'xhrRepr'
     ]
