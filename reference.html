@@ -481,7 +481,29 @@ XMLHttpRequest = NosyXMLHttpRequest.factory("request");
 <p>The name will be used when showing output (e.g., <code>request.setRequestHeader('X-Something', 'value')</code>).</p>
 
 
+<h3 id="node">Node.js</h3>
+
+<p>Doctest.js has some Node support.  You must use the <a href="#format-test">comment-based test format</a> in stand-alone Javascript files.  Then:</p>
+
+<pre>
+$ npm install -g doctestjs
+$ doctest test.js
+</pre>
+
+<p>This will print a success or failure message, and will exit with a code (the number of failures) if the test does not pass.</p>
+
+<p>If you do not wish to install the package globally, do:</p>
+
+<pre>
+$ npm install doctestjs
+$ node_modules/.bin/doctest test.js
+</pre>
+
+
+
 <div style="display: none">
+  <!-- This is where the summary goes, which we basically want to hide
+       on this page: -->
   <div id="doctest-output"></div>
 </div>
 
