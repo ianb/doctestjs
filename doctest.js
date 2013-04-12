@@ -673,6 +673,7 @@ Runner.prototype = {
     var globs = {
       write: this.write.bind(this),
       writeln: this.writeln.bind(this),
+      printResolved: this.printResolved.bind(this),
       wait: this.wait.bind(this),
       Abort: this.Abort.bind(this),
       repr: repr,
@@ -725,6 +726,65 @@ Runner.prototype = {
       }
     }
     this.write('\n');
+  },
+
+  printResolved: function () {
+    // We used finished to signal that nothing should be printed, even when
+    // waiting is 0, as there are more arguments still to collect:
+    var finished = false;
+    var waiting = 0;
+    var fullValues = [];
+    var args = Array.prototype.slice.call(arguments);
+
+    // This function is called as each promise is resolved, to see if it
+    // was the last promise:
+    var check = (function (dec) {
+      waiting -= dec;
+      if (waiting || ! finished) {
+        return;
+      }
+      var flattened = [];
+      fullValues.forEach(function (items) {
+        items.forEach(function (item) {
+          flattened.push(item);
+        });
+      });
+      this.writeln.apply(this, flattened);
+    }).bind(this);
+
+    args.forEach(function (value, index) {
+      if (value.then) {
+        // It's a promise
+        waiting++;
+        value.then(
+          (function () {
+            var values = Array.prototype.slice.call(arguments);
+            if (! values.length) {
+              values.push("(resolved)");
+            }
+            fullValues[index] = values;
+            check(1);
+          }).bind(this),
+          (function () {
+            var errs = Array.prototype.slice.call(arguments);
+            if (! errs.length) {
+              errs.push("(error)");
+            }
+            errs = ["Error:"].concat(errs);
+            fullValues[index] = errs;
+            check(1);
+          }).bind(this));
+      } else {
+        fullValues[index] = [value];
+      }
+    }, this);
+    finished = true;
+    if (waiting) {
+      this.wait(function () {
+        return ! waiting;
+      });
+    }
+    check(0);
   },
 
   wait: function (conditionOrTime, hardTimeout) {
@@ -811,6 +871,7 @@ Runner.prototype = {
     if (typeof window != 'undefined') {
       window.write = undefined;
       window.writeln = undefined;
+      window.printResolved = undefined;
       window.print = undefined;
       window.wait = undefined;
       window.onerror = undefined;
