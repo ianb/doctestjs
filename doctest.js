@@ -53,12 +53,12 @@ Example.prototype = {
     try {
       this.result = this.runner.evaller(this.expr, globs, this.filename);
     } catch (e) {
-      if (e['doctest.abort']) {
+      if (e && e['doctest.abort']) {
         return;
       }
       this.write('Error: ' + e + '\n');
       // FIXME: doesn't format nicely:
-      if (e.stack) {
+      if (e && e.stack) {
         console.log('Exception Stack:');
         console.log(e.stack);
       }
