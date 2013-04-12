@@ -218,6 +218,35 @@ The first function is a <em>test</em> that is applied to objects.  If it returns
 
 <p>All the methods on console should work, like <code>console.warn()</code>.  The underlying normal console function is called, but in addition on a test-by-test basis these are collected and displayed.</p>
 
+<h4 id="printResolved"><code>printResolved()</code> for Deferred and Promises</h4>
+
+<p>There's special support for the jQuery <a href="http://api.jquery.com/category/deferred-object/">Deferred</a> object, and generally <a href="http://wiki.commonjs.org/wiki/Promises/A">Promises/A</a>.</p>
+
+<p>This support is through the <code>printResolved()</code> function, which is basically equivalent to <code>print()</code> except any promise arguments will be waited on to resolve (proper resolution or an error).  You can use it like this:</p>
+
+<pre class="test">
+var def = $.Deferred();
+setTimeout(function () {
+  def.resolve("Resolved!");
+});
+printResolved(def);
+// => Resolved!
+</pre>
+
+<p>Errors are printed out with <code>Error:</code> before the value, and multiple arguments are printed out with spaces between them, or a placeholder if there's no arguments.  For instance:</p>
+
+<pre class="test">
+var def = $.Deferred();
+def.reject({code: 1}, "a message");
+printResolved(def);
+// => Error: {code: 1} a message
+// Or you might not have any value at all:
+def = $.Deferred();
+def.resolve();
+printResolved(def);
+// => (resolved)
+</pre>
+
 <h3 id="matching">Output matching</h3>
 
 <p>The <em>expected</em> output is compared with the output you actually <em>got</em> (received).</p>
