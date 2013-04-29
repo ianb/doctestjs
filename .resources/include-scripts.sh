@@ -40,7 +40,7 @@ def repl(match):
     filename = names.get(match.group(1))
     # I do not understand why --ascii needs an option
     output = subprocess.check_output(
-      ["uglifyjs", "--no-copyright", "--max-line-len", "200", "--acii", "true", filename])
+      ["uglifyjs", "--no-copyright", "--max-line-len", "200", "-b", "max-line-len=200,ascii-only=true,beautify=false", filename])
     return "/* INSERT %s */\n%s\n/* END INSERT */" % (
         match.group(1), output)
 new_content = regex.sub(repl, content)
