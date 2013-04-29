@@ -27,25 +27,28 @@
 /*jslint browser: true node: true */
 /*global load:true, print:true */
 var setupBenchmarks,
-    fixture;
+    fullFixture,
+    quickFixture;
 
-fixture = [
-    'jQuery 1.7.1',
-    'jQuery 1.6.4',
-    'jQuery.Mobile 1.0',
-    'Prototype 1.7.0.0',
-    'Prototype 1.6.1',
-    'Ext Core 3.1.0',
-    'Ext Core 3.0.0',
-    'MooTools 1.4.1',
-    'MooTools 1.3.2',
-    'Backbone 0.5.3',
-    'Underscore 1.2.3'
+fullFixture = [
+    'Underscore 1.4.1',
+    'Backbone 1.0.0',
+    'MooTools 1.4.5',
+    'jQuery 1.9.1',
+    'YUI 3.9.1',
+    'jQuery.Mobile 1.3.1',
+    'Angular 1.0.6'
+];
+
+quickFixture = [
+    'Backbone 1.0.0',
+    'jQuery 1.9.1',
+    'Angular 1.0.6'
 ];
 
 function slug(name) {
     'use strict';
-    return name.toLowerCase().replace(/\s/g, '-');
+    return name.toLowerCase().replace(/\.js/g, 'js').replace(/\s/g, '-');
 }
 
 function kb(bytes) {
@@ -91,8 +94,8 @@ if (typeof window !== 'undefined') {
             str += '<thead><tr><th>Source</th><th>Size (KiB)</th>';
             str += '<th>Time (ms)</th><th>Variance</th></tr></thead>';
             str += '<tbody>';
-            for (index = 0; index < fixture.length; index += 1) {
-                test = fixture[index];
+            for (index = 0; index < fullFixture.length; index += 1) {
+                test = fullFixture[index];
                 name = slug(test);
                 str += '<tr>';
                 str += '<td>' + test + '</td>';
@@ -165,11 +168,11 @@ if (typeof window !== 'undefined') {
             function loadNextTest() {
                 var test;
 
-                if (index < fixture.length) {
-                    test = fixture[index];
+                if (index < fullFixture.length) {
+                    test = fullFixture[index];
                     index += 1;
                     setText('status', 'Please wait. Loading ' + test +
-                            ' (' + index + ' of ' + fixture.length + ')');
+                            ' (' + index + ' of ' + fullFixture.length + ')');
                     window.setTimeout(function () {
                         load(slug(test), loadNextTest);
                     }, 100);
@@ -190,8 +193,8 @@ if (typeof window !== 'undefined') {
 
             function reset() {
                 var i, name;
-                for (i = 0; i < fixture.length; i += 1) {
-                    name = slug(fixture[i]);
+                for (i = 0; i < fullFixture.length; i += 1) {
+                    name = slug(fullFixture[i]);
                     setText(name + '-time', '');
                     setText(name + '-variance', '');
                 }
@@ -244,11 +247,11 @@ if (typeof window !== 'undefined') {
         }
 
         id('runquick').onclick = function () {
-            runBenchmarks(['jQuery 1.7.1', 'jQuery.Mobile 1.0', 'Backbone 0.5.3']);
+            runBenchmarks(quickFixture);
         };
 
         id('runfull').onclick = function () {
-            runBenchmarks(fixture);
+            runBenchmarks(fullFixture);
         };
 
         setText('benchmarkjs-version', ' version ' + window.Benchmark.version);
@@ -260,15 +263,13 @@ if (typeof window !== 'undefined') {
     };
 } else {
 
-    // UMD workaround for V8 shell.
-    var window;
-
     (function (global) {
         'use strict';
         var Benchmark,
             esprima,
             dirname,
-            option,
+            quick,
+            loc = false,
             fs,
             readFileSync,
             log;
@@ -277,7 +278,6 @@ if (typeof window !== 'undefined') {
             dirname = 'test';
             load(dirname + '/3rdparty/benchmark.js');
 
-            window = global;
             load(dirname + '/../esprima.js');
 
             Benchmark = global.Benchmark;
@@ -288,7 +288,8 @@ if (typeof window !== 'undefined') {
             Benchmark = require('./3rdparty/benchmark');
             esprima = require('../esprima');
             fs = require('fs');
-            option = process.argv[2];
+            quick = process.argv[2] === 'quick' || process.argv[3] === 'quick';
+            loc = process.argv[2] === 'loc' || process.argv[3] === 'loc';
             readFileSync = function readFileSync(filename) {
                 return fs.readFileSync(filename, 'utf-8');
             };
@@ -307,14 +308,14 @@ if (typeof window !== 'undefined') {
                     size = source.length;
                 totalSize += size;
                 return suite.add(filename, function () {
-                    var syntax = esprima.parse(source);
+                    var syntax = esprima.parse(source, {loc: loc});
                     tree.push(syntax.body.length);
                 }, {
                     'onComplete': function (event, bench) {
                         log(this.name +
                             ' size ' + kb(size) +
                             ' time ' + (1000 * this.stats.mean).toFixed(1) +
-                            ' variance ' + (1000 * this.stats.variance).toFixed(1));
+                            ' variance ' + (1000 * 1000 * this.stats.variance).toFixed(1));
                         totalTime += this.stats.mean;
                     }
                 });
@@ -324,10 +325,10 @@ if (typeof window !== 'undefined') {
             }).run();
         }
 
-        if (option === 'quick') {
-            runTests(['jQuery 1.7.1', 'jQuery.Mobile 1.0', 'Backbone 0.5.3']);
+        if (quick) {
+            runTests(quickFixture);
         } else {
-            runTests(fixture);
+            runTests(fullFixture);
         }
     }(this));
 }

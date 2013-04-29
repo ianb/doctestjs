@@ -16,7 +16,7 @@ if [ ! -d $base/.resources/jshint ] ; then
     exit 2
 fi
 
-if [ ! -d $base/esprima ] ; then
+if [ ! -d $base/.resources/esprima ] ; then
     echo "Could not find $base/.resources/esprima"
     echo "Try:"
     echo "  git clone https://github.com/ariya/esprima.git .resources/esprima"
@@ -25,7 +25,7 @@ fi
 
 echo "Substituting $base/doctest.js"
 
-uglify_options="--no-copyright --max-line-len 200"
+uglify_options="--no-copyright --max-line-len 200 --ascii"
 
 python -c '
 import os, sys, re
@@ -45,4 +45,4 @@ new_content = regex.sub(repl, content)
 with open("doctest.js", "wb") as fp:
     fp.write(new_content)
 print "wrote doctest.js"
-' "$base" esprima.js="$(uglifyjs $uglify_options < esprima/esprima.js)" jshint.js="$(uglifyjs $uglify_options < jshint/jshint.js)"
+' "$base" esprima.js="$(uglifyjs $uglify_options < $base/.resources/esprima/esprima.js)" jshint.js="$(uglifyjs $uglify_options < $base/.resources/jshint/src/stable/jshint.js)"

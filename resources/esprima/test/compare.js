@@ -33,20 +33,19 @@ var setupBenchmarks,
 parsers = [
     'Esprima',
     'parse-js',
-    'ZeParser',
-    'Narcissus'
+    'Acorn'
 ];
 
 fixtureList = [
-    'jQuery 1.7.1',
-    'Prototype 1.7.0.0',
-    'MooTools 1.4.1',
-    'Ext Core 3.1.0'
+    'Underscore 1.4.1',
+    'Backbone 1.0.0',
+    'jQuery 1.9.1',
+    'YUI 3.9.1'
 ];
 
 function slug(name) {
     'use strict';
-    return name.toLowerCase().replace(/\s/g, '-');
+    return name.toLowerCase().replace(/\.js/g, 'js').replace(/\s/g, '-');
 }
 
 function kb(bytes) {
@@ -65,13 +64,6 @@ function inject(fname) {
 }
 
 if (typeof window !== 'undefined') {
-
-    // Mozilla Narcissus
-    if (typeof Object.create === 'function' && typeof Object.defineProperty === 'function') {
-        inject('3rdparty/jsdefs.js');
-        inject('3rdparty/jslex.js');
-        inject('3rdparty/jsparse.js');
-    }
 
     // Run all tests in a browser environment.
     setupBenchmarks = function () {
@@ -278,19 +270,13 @@ if (typeof window !== 'undefined') {
                     };
                     break;
 
-                case 'ZeParser':
+                case 'Acorn':
                     fn = function () {
-                        var syntax = window.ZeParser.parse(source, false);
-                        window.tree.push(syntax.length);
+                        var syntax = window.acorn.parse(source);
+                        window.tree.push(syntax.body.length);
                     };
                     break;
 
-                case 'Narcissus':
-                    fn = function () {
-                        var syntax = window.Narcissus.parser.parse(source);
-                        window.tree.push(syntax.children.length);
-                    };
-                    break;
                 default:
                     throw 'Unknown parser type ' + parser;
                 }

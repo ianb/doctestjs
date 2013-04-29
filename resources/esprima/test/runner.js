@@ -84,7 +84,8 @@ function testParse(esprima, code, syntax) {
         loc: true,
         tokens: (typeof syntax.tokens !== 'undefined'),
         raw: true,
-        tolerant: (typeof syntax.errors !== 'undefined')
+        tolerant: (typeof syntax.errors !== 'undefined'),
+        source: null
     };
 
     if (typeof syntax.tokens !== 'undefined') {
@@ -99,6 +100,10 @@ function testParse(esprima, code, syntax) {
             options.range = (typeof syntax.comments[0].range !== 'undefined');
             options.loc = (typeof syntax.comments[0].loc !== 'undefined');
         }
+    }
+
+    if (options.loc) {
+        options.source = syntax.loc.source;
     }
 
     expected = JSON.stringify(syntax, null, 4);
@@ -123,11 +128,69 @@ function testParse(esprima, code, syntax) {
     if (expected !== actual) {
         throw new NotMatchingError(expected, actual);
     }
+
+    function filter(key, value) {
+        if (key === 'value' && value instanceof RegExp) {
+            value = value.toString();
+        }
+        return (key === 'loc' || key === 'range') ? undefined : value;
+    }
+
+    if (options.tolerant) {
+        return;
+    }
+
+
+    // Check again without any location info.
+    options.range = false;
+    options.loc = false;
+    expected = JSON.stringify(syntax, filter, 4);
+    try {
+        tree = esprima.parse(code, options);
+        tree = (options.comment || options.tokens) ? tree : tree.body[0];
+
+        if (options.tolerant) {
+            for (i = 0, len = tree.errors.length; i < len; i += 1) {
+                tree.errors[i] = errorToObject(tree.errors[i]);
+            }
+        }
+
+        actual = JSON.stringify(tree, filter, 4);
+    } catch (e) {
+        throw new NotMatchingError(expected, e.toString());
+    }
+    if (expected !== actual) {
+        throw new NotMatchingError(expected, actual);
+    }
+}
+
+function testTokenize(esprima, code, tokens) {
+    'use strict';
+    var options, expected, actual, tree;
+
+    options = {
+        comment: true,
+        tolerant: true,
+        loc: true,
+        range: true
+    };
+
+    expected = JSON.stringify(tokens, null, 4);
+
+    try {
+        tree = esprima.tokenize(code, options);
+        actual = JSON.stringify(tree, null, 4);
+    } catch (e) {
+        throw new NotMatchingError(expected, e.toString());
+    }
+    if (expected !== actual) {
+        throw new NotMatchingError(expected, actual);
+    }
 }
 
 function testError(esprima, code, exception) {
     'use strict';
-    var i, options, expected, actual, handleInvalidRegexFlag;
+    var i, options, expected, actual, err, handleInvalidRegexFlag, tokenize;
 
     // Different parsing options should give the same error.
     options = [
@@ -147,14 +210,26 @@ function testError(esprima, code, exception) {
         handleInvalidRegexFlag = true;
     }
 
+    exception.description = exception.message.replace(/Error: Line [0-9]+: /, '');
+
+    if (exception.tokenize) {
+        tokenize = true;
+        exception.tokenize = undefined;
+    }
     expected = JSON.stringify(exception);
 
     for (i = 0; i < options.length; i += 1) {
 
         try {
-            esprima.parse(code, options[i]);
+            if (tokenize) {
+                esprima.tokenize(code, options[i])
+            } else {
+                esprima.parse(code, options[i]);
+            }
         } catch (e) {
-            actual = JSON.stringify(errorToObject(e));
+            err = errorToObject(e);
+            err.description = e.description;
+            actual = JSON.stringify(err);
         }
 
         if (expected !== actual) {
@@ -198,6 +273,8 @@ function runTest(esprima, code, result) {
         testError(esprima, code, result);
     } else if (result.hasOwnProperty('result')) {
         testAPI(esprima, code, result);
+    } else if (result instanceof Array) {
+        testTokenize(esprima, code, result);
     } else {
         testParse(esprima, code, result);
     }
@@ -300,11 +377,13 @@ if (typeof window !== 'undefined') {
         tick = (new Date()) - tick;
 
         if (failures > 0) {
+            document.getElementById('status').className = 'alert-box alert';
             setText(document.getElementById('status'), total + ' tests. ' +
-                'Failures: ' + failures + '. ' + tick + ' ms');
+                'Failures: ' + failures + '. ' + tick + ' ms.');
         } else {
+            document.getElementById('status').className = 'alert-box success';
             setText(document.getElementById('status'), total + ' tests. ' +
-                'No failure. ' + tick + ' ms');
+                'No failure. ' + tick + ' ms.');
         }
     };
 } else {
