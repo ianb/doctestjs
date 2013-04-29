@@ -25,10 +25,8 @@ fi
 
 echo "Substituting $base/doctest.js"
 
-uglify_options="--no-copyright --max-line-len 200 --ascii"
-
 python -c '
-import os, sys, re
+import os, sys, re, subprocess
 os.chdir(sys.argv[1])
 with open("doctest.js", "rb") as fp:
     content = fp.read()
@@ -39,10 +37,14 @@ for arg in sys.argv[2:]:
 regex = re.compile(r"\/\*\s+INSERT\s+(.*?)\s+\*\/\s*\n(.*?)\/*\s+END\s+INSERT\s+\*\/", re.S)
 def repl(match):
     print "Replacing %s" % match.group(1)
+    filename = names.get(match.group(1))
+    # I do not understand why --ascii needs an option
+    output = subprocess.check_output(
+      ["uglifyjs", "--no-copyright", "--max-line-len", "200", "--acii", "true", filename])
     return "/* INSERT %s */\n%s\n/* END INSERT */" % (
-        match.group(1), names[match.group(1)])
+        match.group(1), output)
 new_content = regex.sub(repl, content)
 with open("doctest.js", "wb") as fp:
     fp.write(new_content)
 print "wrote doctest.js"
-' "$base" esprima.js="$(uglifyjs $uglify_options < $base/.resources/esprima/esprima.js)" jshint.js="$(uglifyjs $uglify_options < $base/.resources/jshint/src/stable/jshint.js)"
+' "$base" esprima.js=$base/.resources/esprima/esprima.js jshint.js=$base/.resources/jshint/jshint.js
