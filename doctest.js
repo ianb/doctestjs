@@ -2381,7 +2381,6 @@ require.define("/src/stable/jshint.js",Function(["require","module","exports","_
 require("/src/stable/jshint.js");JSHINT=require("/src/stable/jshint.js").JSHINT})();
 /* END INSERT */
 
-//var JSHINT = exports.JSHINT;
 realExports.JSHINT = JSHINT;
 exports = realExports;
 
