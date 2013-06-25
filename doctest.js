@@ -75,6 +75,9 @@ Example.prototype = {
   writeConsole: function (message) {
     this.consoleOutput.push(message);
   },
+  clearConsole: function () {
+    this.consoleOutput = [];
+  },
   timeout: function (passed) {
     this.runner.reporter.logFailure(this, "Error: wait timed out after " + passed + " milliseconds");
   },
@@ -686,7 +689,8 @@ Runner.prototype = {
       log: this.logFactory(null, console.log),
       warn: this.logFactory(null, console.warn),
       error: this.logFactory(null, console.error),
-      info: this.logFactory(null, console.info)
+      info: this.logFactory(null, console.info),
+      clear: this.clearLogs.bind(this)
     };
     if (typeof window == 'undefined') {
       // Can't just overwrite the console object
@@ -852,6 +856,13 @@ Runner.prototype = {
     return func;
   },
 
+  clearLogs: function () {
+    this._currentExample.clearConsole();
+    if (console.clear.origFunc) {
+      console.clear.origFunc.call(console);
+    }
+  },
+
   Abort: function (message) {
     this._abortCalled = message || 'aborted';
     return {
@@ -881,6 +892,7 @@ Runner.prototype = {
       window.console.warn = window.console.warn.origFunc;
       window.console.error = window.console.error.origFunc;
       window.console.info = window.console.info.origFunc;
+      window.console.clear = window.console.clear.origFunc;
     }
   },
 
