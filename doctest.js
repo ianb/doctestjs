@@ -1319,6 +1319,9 @@ HTMLParser.prototype = {
           var pre = document.createElement('pre');
           pre.className = el.className;
           pre.appendChild(document.createTextNode(texts[i].body));
+          if (texts[i].expandOnFailure) {
+            pre.className += " expand-on-failure";
+          }
           el.parentNode.insertBefore(pre, null);
         }
         el.parentNode.removeChild(el);
@@ -1350,6 +1353,11 @@ HTMLParser.prototype = {
       var end = comment.range[1];
       var body = text.substr(pos, start-pos);
       var header = strip(comment.value.replace(/^\s*=+\s*SECTION\s*/, ''));
+      var expandOnFailure = false;
+      if (header.search(/expand-on-failure/i) !== -1) {
+        expandOnFailure = true;
+        header = header.replace(/\s*expand-on-failure/i, "");
+      }
       if (! result.length) {
         if (strip(body)) {
           result.push({header: null, body: body});
@@ -1357,7 +1365,7 @@ HTMLParser.prototype = {
       } else {
         result[result.length-1].body = body;
       }
-      result.push({header: header, body: null});
+      result.push({header: header, body: null, expandOnFailure: expandOnFailure});
       pos = end;
     }
     if (! result.length) {
