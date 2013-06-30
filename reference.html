@@ -164,6 +164,8 @@ expected output
 
 This will make the test 3em tall unless there's a failure, at which point it expands to its full size.</p>
 
+<p>You can use <code>// =SECTION Section Title expand-on-failure</code> to make the section compact except in case of failure.</p>
+
 <h3 id="print">Printing/writing</h3>
 
 <p>The <code>print()</code> function is pretty important, of course. (Note it also was called <code>writeln()</code>, a name which is still supported).</p>
@@ -217,6 +219,22 @@ The first function is a <em>test</em> that is applied to objects.  If it returns
 <p><code>console.log()</code> works a lot like <code>print()</code>. But unlike <code>print()</code> it doesn't make a test pass or fail, it's purely informative.</p>
 
 <p>All the methods on console should work, like <code>console.warn()</code>.  The underlying normal console function is called, but in addition on a test-by-test basis these are collected and displayed.</p>
+
+<p><code>console.clear()</code> also works, and can be useful especially if you need to loop over cases, but only see the console messages for a case that fails.  Like:
+
+<pre>
+for (var i=0; i&lt;100; i++) {
+  // runRandomTest() has a bunch of calls to console.log():
+  result = runRandomTest();
+  if (result.got != result.expected) {
+    print("Error:", result.got, "!=", result.expected);
+    throw 'Error';
+  } else {
+    // Everything went fine, console.log messages are boring...
+    console.clear();
+  }
+}
+</pre>
 
 <h4 id="printResolved"><code>printResolved()</code> for Deferred and Promises</h4>
 
