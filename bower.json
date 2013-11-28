@@ -1,0 +1,19 @@
+{
+  "name": "doctestjs",
+  "version": "0.3.0",
+  "homepage": "http://doctestjs.org/",
+  "authors": [
+    "Ian Bicking <ian@ianbicking.org>"
+  ],
+  "description": "Example-based testing framework",
+  "main": "doctest",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "**/*.html",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
