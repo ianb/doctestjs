@@ -16,7 +16,7 @@
     "test",
     "tests"
   ],
-  "devDependencies": {
+  "dependencies": {
     "esprima": "~1.0.4"
   }
 }
